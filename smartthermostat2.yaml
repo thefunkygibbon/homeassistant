@@ -1,0 +1,67 @@
+blueprint:
+  name: window controlled heater Summer GAVEAS
+  description: Raise heater temp to 26 when opening window and bring back with delay
+  domain: automation
+  source_url: https://gist.github.com/govido/4aaa213e6209d3b76ec0e65d576e3701
+  input:
+    heating_target:
+      name: Heater
+      selector:
+        entity:
+          domain: climate
+    window_entity:
+      name: Window Sensor
+      selector:
+        entity: {}
+    window_closed_wait:
+      name: Wait time open
+      description: Time to leave the heating on after window or door is opened.
+      default: 120
+      selector:
+        number:
+          min: 0.0
+          max: 3600.0
+          unit_of_measurement: seconds
+          mode: slider
+          step: 1.0
+    window_opened_wait:
+      name: Wait time closed
+      description: Time to leave the heating off after window or door is closed.
+      default: 120
+      selector:
+        number:
+          min: 0.0
+          max: 3600.0
+          unit_of_measurement: seconds
+          mode: slider
+          step: 1.0
+mode: restart
+max_exceeded: silent
+variables:
+  heating_target: !input 'heating_target'
+  heating_temperature: '{{ state_attr(heating_target, ''temperature'') }}'
+trigger:
+  platform: state
+  entity_id: !input 'window_entity'
+  from: 'off'
+  to: 'on'
+action:
+- delay: !input 'window_opened_wait'
+- service: climate.set_temperature
+  entity_id: !input 'heating_target'
+  data:
+    temperature: 26
+- wait_for_trigger:
+    platform: state
+    entity_id: !input 'window_entity'
+    from: 'on'
+    to: 'off'
+- delay: !input 'window_closed_wait'
+- service: climate.set_temperature
+  entity_id: !input 'heating_target'
+  data:
+    temperature: 22
+- service: climate.set_temperature
+  entity_id: !input 'heating_target'
+  data:
+    temperature: '{{heating_temperature}}'
