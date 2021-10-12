@@ -1,21 +1,21 @@
 blueprint:
-  name: window controlled heater Summer GAVEAS
+  name: Door controlled heater Summer
   description: Raise heater temp to 26 when opening window and bring back with delay
   domain: automation
-  source_url: https://gist.github.com/govido/4aaa213e6209d3b76ec0e65d576e3701
+  source_url: https://github.com/thefunkygibbon/homeassistant/edit/main/smartthermostat2.yaml
   input:
     heating_target:
       name: Heater
       selector:
         entity:
           domain: climate
-    window_entity:
-      name: Window Sensor
+    door_entity:
+      name: Door Sensor
       selector:
         entity: {}
-    window_closed_wait:
+    door_closed_wait:
       name: Wait time open
-      description: Time to leave the heating on after window or door is opened.
+      description: Time to leave the heating on after door is opened.
       default: 120
       selector:
         number:
@@ -24,9 +24,9 @@ blueprint:
           unit_of_measurement: seconds
           mode: slider
           step: 1.0
-    window_opened_wait:
+    door_opened_wait:
       name: Wait time closed
-      description: Time to leave the heating off after window or door is closed.
+      description: Time to leave the heating off after door is closed.
       default: 120
       selector:
         number:
@@ -35,6 +35,28 @@ blueprint:
           unit_of_measurement: seconds
           mode: slider
           step: 1.0
+    target_temp:
+      name: Target Temperature
+      description: Temperature to set the heater to.
+      default: 20
+      selector:
+        number:
+          min: 0.0
+          max: 40
+          unit_of_measurement: degrees
+          mode: slider
+          step: 0.1
+    default_temp:
+      name: Default Temperature
+      description: Temperature to set the heater back down to when not in use
+      default: 10
+      selector:
+        number:
+          min: 0.0
+          max: 40
+          unit_of_measurement: degrees
+          mode: slider
+          step: 0.1 
 mode: restart
 max_exceeded: silent
 variables:
@@ -42,25 +64,25 @@ variables:
   heating_temperature: '{{ state_attr(heating_target, ''temperature'') }}'
 trigger:
   platform: state
-  entity_id: !input 'window_entity'
+  entity_id: !input 'door_entity'
   from: 'off'
   to: 'on'
 action:
-- delay: !input 'window_opened_wait'
+- delay: !input 'door_opened_wait'
 - service: climate.set_temperature
   entity_id: !input 'heating_target'
   data:
-    temperature: 26
+    temperature: !input 'default_temp'
 - wait_for_trigger:
     platform: state
-    entity_id: !input 'window_entity'
+    entity_id: !input 'door_entity'
     from: 'on'
     to: 'off'
-- delay: !input 'window_closed_wait'
+- delay: !input 'door_closed_wait'
 - service: climate.set_temperature
   entity_id: !input 'heating_target'
   data:
-    temperature: 22
+    temperature: !input 'target_temp'
 - service: climate.set_temperature
   entity_id: !input 'heating_target'
   data:
