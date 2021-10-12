@@ -152,22 +152,22 @@ action:
               ((now().strftime('%A') == 'Saturday') and run_on_saturday) }}
           - condition: trigger
             id: "end_trigger"
-- delay: !input 'door_opened_wait'
-- service: climate.set_temperature
-  entity_id: !input 'heating_target'
-  data:
-    temperature: !input 'default_temp'
-- wait_for_trigger:
-    platform: state
-    entity_id: !input 'door_entity'
-    from: 'on'
-    to: 'off'
-- delay: !input 'door_closed_wait'
-- service: climate.set_temperature
-  entity_id: !input 'heating_target'
-  data:
-    temperature: !input 'target_temp'
-- service: climate.set_temperature
-  entity_id: !input 'heating_target'
-  data:
-    temperature: '{{heating_temperature}}'
+  - delay: !input 'door_opened_wait'
+  - service: climate.set_temperature
+    entity_id: !input 'heating_target'
+    data:
+      temperature: !input 'default_temp'
+  - wait_for_trigger:
+      platform: state
+      entity_id: !input 'door_entity'
+      from: 'on'
+      to: 'off'
+  - delay: !input 'door_closed_wait'
+  - service: climate.set_temperature
+    entity_id: !input 'heating_target'
+    data:
+      temperature: !input 'target_temp'
+  - service: climate.set_temperature
+    entity_id: !input 'heating_target'
+    data:
+      temperature: '{{heating_temperature}}'
