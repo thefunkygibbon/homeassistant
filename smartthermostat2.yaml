@@ -57,17 +57,101 @@ blueprint:
           unit_of_measurement: degrees
           mode: slider
           step: 0.1 
+    start_time:
+      name: Start Time
+      selector:
+        time:
+    end_time:
+      name: End Time
+      selector:
+        time:
+    run_on_sunday:
+      name: Run on Sunday
+      selector:
+        boolean:
+    run_on_monday:
+      name: Run on Monday
+      selector:
+        boolean:
+    run_on_tuesday:
+      name: Run on Tuesday
+      selector:
+        boolean:
+    run_on_wednesday:
+      name: Run on Wednesday
+      selector:
+        boolean:
+    run_on_thursday:
+      name: Run on Thursday
+      selector:
+        boolean:
+    run_on_friday:
+      name: Run on Friday
+      selector:
+        boolean:
+    run_on_saturday:
+      name: Run on Saturday
+      selector:
+        boolean:
 mode: restart
 max_exceeded: silent
+
 variables:
   heating_target: !input 'heating_target'
   heating_temperature: '{{ state_attr(heating_target, ''temperature'') }}'
+  run_on_sunday: !input run_on_sunday
+  run_on_monday: !input run_on_monday
+  run_on_tuesday: !input run_on_tuesday
+  run_on_wednesday: !input run_on_wednesday
+  run_on_thursday: !input run_on_thursday
+  run_on_friday: !input run_on_friday
+  run_on_saturday: !input run_on_saturday
+
+trigger_variables:
+  run_on_sunday: !input run_on_sunday
+  run_on_monday: !input run_on_monday
+  run_on_tuesday: !input run_on_tuesday
+  run_on_wednesday: !input run_on_wednesday
+  run_on_thursday: !input run_on_thursday
+  run_on_friday: !input run_on_friday
+  run_on_saturday: !input run_on_saturday
+
 trigger:
-  platform: state
-  entity_id: !input 'door_entity'
-  from: 'off'
-  to: 'on'
+  - platform: time
+    at: !input start_time
+    id: "start_trigger"
+  - platform: time
+    at: !input end_time
+    id: "end_trigger"
+
 action:
+  - choose:
+      - conditions:
+          # Turn On Time
+          - condition: template
+            value_template: |-
+              {{ ((now().strftime('%A') == 'Sunday') and run_on_sunday) or
+              ((now().strftime('%A') == 'Monday') and run_on_monday) or
+              ((now().strftime('%A') == 'Tuesday') and run_on_tuesday) or
+              ((now().strftime('%A') == 'Wednesday') and run_on_wednesday) or
+              ((now().strftime('%A') == 'Thursday') and run_on_thursday) or
+              ((now().strftime('%A') == 'Friday') and run_on_friday) or
+              ((now().strftime('%A') == 'Saturday') and run_on_saturday) }}
+          - condition: trigger
+            id: "start_trigger"
+      - conditions:
+          # Turn Off Time
+          - condition: template
+            value_template: |-
+              {{ ((now().strftime('%A') == 'Sunday') and run_on_sunday) or
+              ((now().strftime('%A') == 'Monday') and run_on_monday) or
+              ((now().strftime('%A') == 'Tuesday') and run_on_tuesday) or
+              ((now().strftime('%A') == 'Wednesday') and run_on_wednesday) or
+              ((now().strftime('%A') == 'Thursday') and run_on_thursday) or
+              ((now().strftime('%A') == 'Friday') and run_on_friday) or
+              ((now().strftime('%A') == 'Saturday') and run_on_saturday) }}
+          - condition: trigger
+            id: "end_trigger"
 - delay: !input 'door_opened_wait'
 - service: climate.set_temperature
   entity_id: !input 'heating_target'
