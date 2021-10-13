@@ -122,10 +122,9 @@ action:
         for: !input 'group_presence'
         state: not_home
     sequence:
-    - service: climate.set_preset_mode
+    - service: climate.turn_on
       data:
         entity_id: !input 'heating'
-        preset_mode: heat
     - service: climate.set_temperature
       data:
         entity_id: !input 'heating'
