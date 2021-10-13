@@ -125,7 +125,7 @@ action:
     - service: climate.set_preset_mode
       data:
         entity_id: !input 'heating'
-        preset_mode: none
+        preset_mode: heat
     - service: climate.set_temperature
       data:
         entity_id: !input 'heating'
