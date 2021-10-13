@@ -59,8 +59,19 @@ condition:
   condition: template
   value_template: "{{ trigger.from_state.state != trigger.to_state.state }}"
 
-action:
 
+
+
+action:
+# Send the message to the mobile app with the chosen settings
+  - choose:
+      conditions: "{{ notify_device_1 != "" }}"
+      sequence:
+      - type: notify
+        domain: mobile_app
+        device_id: !input notify_device_1
+        title: "{{ notification_title }}"
+        message: "{{ notification_message }}"
 # Send the message to the media device with the chosen settings using tts
    - choose:
       conditions: "{{ notify_device_2_1 != "" }}"
