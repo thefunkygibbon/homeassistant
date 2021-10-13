@@ -1,0 +1,153 @@
+blueprint:
+  name: Heating Control and Window Sensor
+  description: Control your heating with options for group home, if temp is below
+    a specific value, set temp, and heating between specific times.
+  domain: automation
+  input:
+    heating:
+      name: Climate Device
+      description: The climate device to use.
+      selector:
+        entity:
+          domain: climate
+    temp_sensor:
+      name: Temperature Sensor
+      description: Temperature Sensor to check.
+      selector:
+        entity:
+          domain: sensor
+          device_class: temperature
+    window_sensor_1:
+      name: Door or Window Sensor
+      description: Check if window or door is open
+      selector:
+        entity:
+          domain: binary_sensor
+          device_class: opening
+    groupname:
+      name: Person Group
+      description: The group of people that have to be home.
+      default: []
+      selector:
+        entity:
+          domain: group
+    group_presence:
+      name: Group Presence
+      description: Heat only if Person of Group was present in a given amount of time
+      default: 07:30:00
+      selector:
+        time: {}
+    heating_boolean:
+      name: Heating Boolean
+      description: Check if Boolean is off for automation
+      selector:
+        entity:
+          domain: input_boolean
+    min_temp:
+      name: Minimum Temp
+      description: If temperature is below this value and someone is home, It turns
+        heating on.
+      default: 15
+      selector:
+        number:
+          min: 11.0
+          max: 25.0
+          step: 0.1
+          mode: slider
+    set_temp:
+      name: Temperature Target
+      description: If the heating turns on, It heats to this target temperature.
+      default: 20
+      selector:
+        number:
+          min: 14.0
+          max: 25.0
+          step: 0.1
+          mode: slider
+    energy_temp:
+      name: Energy Saving Temperature
+      description: When away, keep the Energy Saving Temperature 
+      default: 17
+      selector:
+        number:
+          min: 14.0
+          max: 25.0
+          step: 0.1
+          mode: slider
+    time_after:
+      name: Time After
+      description: After this time the heating turns on, so it's warm in the morning
+      default: 07:30:00
+      selector:
+        time: {}
+    time_before:
+      name: Time Before
+      description: After this time the heating turns off, This to prevent the heating
+        is on in the middle of the night
+      default: '21:30:00'
+      selector:
+        time: {}
+  source_url: https://gist.github.com/f45tb00t/eab416909ff6d125d7f3c6170ab017a9
+variables:
+  set_temp: !input 'set_temp'
+  energy_temp: !input 'energy_temp'
+  window_sensor_1: !input 'window_sensor_1'
+  heating_boolean: !input 'heating_boolean'
+trigger:
+- platform: homeassistant
+  event: start
+- platform: event
+  event_type: automation_reloaded
+- platform: time_pattern
+  minutes: /1
+condition:
+  - condition: state
+    entity_id: !input 'heating_boolean'
+    state: 'off'
+action:
+- choose:
+  - conditions:
+    - condition: numeric_state
+      entity_id: !input 'temp_sensor'
+      below: !input 'min_temp'
+    - condition: time
+      before: !input 'time_before'
+      after: !input 'time_after'
+    - condition: state
+      entity_id: !input 'window_sensor_1'
+      state: 'off'
+    - condition: not
+      conditions:
+      - condition: state
+        entity_id: !input 'groupname'
+        for: !input 'group_presence'
+        state: not_home
+    sequence:
+    - service: climate.set_preset_mode
+      data:
+        entity_id: !input 'heating'
+        preset_mode: none
+    - service: climate.set_temperature
+      data:
+        entity_id: !input 'heating'
+        hvac_mode: heat
+        temperature: '{{ set_temp }}'
+  - conditions:
+    - condition: state
+      entity_id: !input 'window_sensor_1'
+      state: 'on'
+    sequence:
+    - service: climate.set_hvac_mode
+      data:
+        hvac_mode: 'off'
+        entity_id: !input 'heating'
+  default:
+  - service: climate.set_preset_mode
+    data:
+      entity_id: !input 'heating'
+      preset_mode: Energy heat
+  - service: climate.set_temperature
+    data:
+      entity_id: !input 'heating'
+      temperature: '{{ energy_temp }}'
+mode: single
