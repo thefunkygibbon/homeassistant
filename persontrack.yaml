@@ -61,8 +61,8 @@ condition:
 
 action:
 # Send the message to the mobile app with the chosen settings
-  - choose:
-    - conditions: "{{ notify_device_1 != "" }}"
+- choose:
+  - conditions: "{{ notify_device_1 != "" }}"
     sequence:
       - type: notify
         domain: mobile_app
@@ -70,9 +70,9 @@ action:
         title: "{{ notification_title }}"
         message: "{{ notification_message }}"
 # Send the message to the media device with the chosen settings using tts
-   - choose:
-     - conditions: "{{ notify_device_2_1 != "" }}"
-     sequence:
+- choose:
+  - conditions: "{{ notify_device_2_1 != "" }}"
+    sequence:
      - service: !input notify_device_2_1
         data:
           data:
