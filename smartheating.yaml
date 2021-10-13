@@ -1,5 +1,5 @@
 blueprint:
-  name: Heating Control and Window Sensor
+  name: Heating Control with Window Sensor
   description: Control your heating with options for group home, if temp is below
     a specific value, set temp, and heating between specific times.
   source_url: https://github.com/thefunkygibbon/homeassistant/blob/main/smartheating.yaml
@@ -50,8 +50,8 @@ blueprint:
       default: 15
       selector:
         number:
-          min: 11.0
-          max: 25.0
+          min: 5.0
+          max: 30.0
           step: 0.1
           mode: slider
     set_temp:
@@ -60,8 +60,8 @@ blueprint:
       default: 20
       selector:
         number:
-          min: 14.0
-          max: 25.0
+          min: 5.0
+          max: 30.0
           step: 0.1
           mode: slider
     energy_temp:
@@ -70,21 +70,21 @@ blueprint:
       default: 17
       selector:
         number:
-          min: 14.0
-          max: 25.0
+          min: 5.0
+          max: 30.0
           step: 0.1
           mode: slider
     time_after:
       name: Time After
       description: After this time the heating turns on, so it's warm in the morning
-      default: 07:30:00
+      default: 08:30:00
       selector:
         time: {}
     time_before:
       name: Time Before
       description: After this time the heating turns off, This to prevent the heating
         is on in the middle of the night
-      default: '21:30:00'
+      default: '17:00:00'
       selector:
         time: {}
 variables:
@@ -106,6 +106,9 @@ condition:
 action:
 - choose:
   - conditions:
+    - condition: state
+      entity_id: binary_sensor.workday_sensor
+      state: "on"
     - condition: numeric_state
       entity_id: !input 'temp_sensor'
       below: !input 'min_temp'
