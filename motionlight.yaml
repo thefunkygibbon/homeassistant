@@ -8,8 +8,7 @@ blueprint:
       selector:
         entity:
           domain: binary_sensor
-          device_class: motion
-          device_class: door
+          device_class: motion, door
 
     elevation_shift:
       name: Elevation Shift
