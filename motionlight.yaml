@@ -1,5 +1,5 @@
 blueprint:
-  name: Motion-activated Light On at Sunset
+  name: Motion-activated Light On at Sunset -andrew
   description: Turn on a light when motion is detected On At Sunset.
   domain: automation
   input:
