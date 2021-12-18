@@ -88,12 +88,6 @@ trigger:
     entity_id: !input motion_entity
     from: "off"
     to: "on"
-  - platform: time
-    at: !input start_time
-    id: "start_trigger"
-  - platform: time
-    at: !input end_time
-    id: "end_trigger"
 
 condition:
   - condition: numeric_state
