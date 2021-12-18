@@ -60,6 +60,17 @@ blueprint:
           min: 0
           max: 3600
           unit_of_measurement: seconds
+          
+    time_from:
+      name: 'Timeslot from'
+      default: "00:00:00"
+      selector:
+        time:
+    time_to:
+      name: 'Timeslot to'
+      default: "23:59:59"
+      selector:
+        time:
 
 # If motion is detected within the delay,
 # we restart the script.
@@ -69,18 +80,29 @@ max_exceeded: silent
 variables:
   target_brightness: !input 'target_brightness'
   target_color_temp: !input 'target_color_temp'
+  time_from: !input time_from
+  time_to: !input time_to
 
 trigger:
-  platform: state
-  entity_id: !input motion_entity
-  from: "off"
-  to: "on"
+  - platform: state
+    entity_id: !input motion_entity
+    from: "off"
+    to: "on"
+  - platform: time
+    at: !input start_time
+    id: "start_trigger"
+  - platform: time
+    at: !input end_time
+    id: "end_trigger"
 
 condition:
   - condition: numeric_state
     entity_id: sun.sun
     attribute: elevation
     below: !input elevation_shift
+  - condition: time
+    after: !input time_from
+    before: !input time_to
 
 action:
   - service: light.turn_on
