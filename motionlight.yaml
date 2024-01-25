@@ -12,14 +12,14 @@ blueprint:
       name: Light Binary Sensor (optional) 
       default: 
       selector:
-        entity: {}
-      domain: binary_sensor
+        entity: 
+          domain: binary_sensor
     lux_entity:
       name: Light Iluminance Sensor (optional)
       default:
       selector:
-        entity: {}
-      domain: sensor
+        entity: 
+          domain: sensor
     lux_value:
       name: Needs to be under Lx value of light sensor (optional)
       default: 
