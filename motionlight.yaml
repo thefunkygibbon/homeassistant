@@ -14,7 +14,7 @@ blueprint:
         entity:
           domain: binary_sensor
     lux_entity:
-      name: Light Binary Sensor
+      name: Light Iluminance Sensor
       selector:
         entity:
           domain: sensor
