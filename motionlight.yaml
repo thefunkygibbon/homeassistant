@@ -8,7 +8,25 @@ blueprint:
       selector:
         entity:
           domain: binary_sensor
-
+    ilum_entity:
+      name: Light Binary Sensor
+      selector:
+        entity:
+          domain: binary_sensor
+    lux_entity:
+      name: Light Binary Sensor
+      selector:
+        entity:
+          domain: sensor
+    lux_value:
+      name: Needs to be under Lx value of light sensor
+      selector:
+        number:
+          min: -10.0
+          max: 10.0
+          mode: slider
+          step: 1.0
+    
     elevation_shift:
       name: Elevation Shift
       description: Using an elevation offset (height of sun relative to the horizon) to shift the sunset trigger, either earlier or later. Positive values bring the automation start time forward, whilst negative values delay the start time.
@@ -82,7 +100,7 @@ variables:
   target_color_temp: !input 'target_color_temp'
   time_from: !input time_from
   time_to: !input time_to
-
+  
 trigger:
   - platform: state
     entity_id: !input motion_entity
@@ -98,6 +116,12 @@ condition:
   - condition: time
     after: !input time_from
     before: !input time_to
+  - condition: state
+    entity_id: !input ilum_entity
+    state: off
+  - condition: state
+    entity_id: !input lux_entity
+    below: !input lux_value
 
 action:
   - service: light.turn_on
