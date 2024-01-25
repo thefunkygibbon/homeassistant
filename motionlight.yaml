@@ -13,13 +13,13 @@ blueprint:
       default: 
       selector:
         entity: {}
-          domain: binary_sensor
+      domain: binary_sensor
     lux_entity:
       name: Light Iluminance Sensor (optional)
       default:
       selector:
         entity: {}
-          domain: sensor
+      domain: sensor
     lux_value:
       name: Needs to be under Lx value of light sensor (optional)
       default: 
@@ -29,7 +29,7 @@ blueprint:
           max: 10.0
           mode: slider
           step: 1.0
-    
+          
     elevation_shift:
       name: Elevation Shift
       description: Using an elevation offset (height of sun relative to the horizon) to shift the sunset trigger, either earlier or later. Positive values bring the automation start time forward, whilst negative values delay the start time.
@@ -119,12 +119,10 @@ condition:
   - condition: time
     after: !input time_from
     before: !input time_to
-  - condition: state
-    entity_id: !input ilum_entity
-    state: off
-  - condition: state
-    entity_id: !input lux_entity
-    below: !input lux_value
+  - condition: template
+    value_template: "{{ ilum_entity == '' or states(ilum_entity) == 'off' }}"
+  - condition: template
+    value_template: "{{ lux_entity == '' or states(lux_entity) | float < lux_value | float }}"
 
 action:
   - service: light.turn_on
