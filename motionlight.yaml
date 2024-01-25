@@ -112,17 +112,20 @@ trigger:
 
 
 condition:
-  - condition: numeric_state
-    entity_id: sun.sun
-    attribute: elevation
-    below: !input elevation_shift
-  - condition: time
-    after: !input time_from
-    before: !input time_to
-  - condition: template
-    value_template: "{{ ilum_entity == '' or states(ilum_entity) == 'off' }}"
-  - condition: template
-    value_template: "{{ lux_entity == '' or states(lux_entity) | float < lux_value | float }}"
+  - condition: and
+    conditions:
+      - condition: numeric_state
+        entity_id: sun.sun
+        attribute: elevation
+        below: !input elevation_shift
+      - condition: time
+        after: !input time_from
+        before: !input time_to
+      - condition: template
+        value_template: "{{ ilum_entity == '' or states(ilum_entity) == 'off' }}"
+      - condition: template
+        value_template: "{{ lux_entity == '' or states(lux_entity) | float < lux_value | float }}"
+
 
 action:
   - service: light.turn_on
