@@ -53,8 +53,8 @@ blueprint:
       name: 'Timeslot from'
       default: "00:00:00"
       selector:
-        time:
-        visibility: "use_time_from"
+        time: {}
+      visibility: "use_time_from"
     
     use_time_to:
       name: 'Use Timeslot To'
@@ -67,8 +67,9 @@ blueprint:
       name: 'Timeslot to'
       default: "23:59:59"
       selector:
-        time:
-        visibility: "use_time_to"
+        time: {}
+      visibility: "use_time_to"
+
       
     target_light:
       name: Lights
