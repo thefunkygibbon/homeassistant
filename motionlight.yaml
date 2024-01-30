@@ -1,6 +1,6 @@
 blueprint:
   name: Motion Sensor with Sunset cutoffs
-  description: Turn on a light when motion is detected On At Sunset. (v1.3)
+  description: Turn on a light when motion is detected On At Sunset. (v1.4)
   domain: automation
   input:
     motion_entity:
@@ -41,6 +41,22 @@ blueprint:
           max: 10.0
           mode: slider
           step: 1.0
+          
+    time_from:
+      name: 'Timeslot from'
+      description: Tick the box if you want to use time based.  Time based overrides all other conditions above.
+      default: "00:00:00"
+      selector:
+        time:
+      use_variable: true
+
+    time_to:
+      name: 'Timeslot to'
+      default: "23:59:59"
+      selector:
+        time:
+      use_variable: true
+      
     target_light:
       name: Lights
       description: This is the light (or lights) that will be activated at sunset
@@ -82,16 +98,6 @@ blueprint:
           max: 3600
           unit_of_measurement: seconds
           
-    time_from:
-      name: 'Timeslot from'
-      default: "00:00:00"
-      selector:
-        time:
-    time_to:
-      name: 'Timeslot to'
-      default: "23:59:59"
-      selector:
-        time:
 
 # If motion is detected within the delay,
 # we restart the script.
@@ -110,21 +116,29 @@ trigger:
     from: "off"
     to: "on"
 
-
 condition:
   - condition: or
     conditions:
-      - condition: numeric_state
-        entity_id: sun.sun
-        attribute: elevation
-        below: !input elevation_shift
-      - condition: time
-        after: !input time_from
-        before: !input time_to
+      - condition: or
+        conditions:
+          - condition: template
+            value_template: "{{ lux_entity != '' and states(lux_entity) | float < lux_value | float }}"
+          - condition: template
+            value_template: "{{ ilum_entity != '' and states(ilum_entity) == 'off' }}"
+      - condition: or
+        conditions:
+          - condition: sun
+            after: sunset
+          - condition: sun
+            before: sunrise
       - condition: template
-        value_template: "{{ ilum_entity == '' or states(ilum_entity) == 'off' }}"
+        value_template: "{{ use_time_override }}"
+  - condition: or
+    conditions:
       - condition: template
-        value_template: "{{ lux_entity == '' or states(lux_entity) | float < lux_value | float }}"
+        value_template: "{{ use_time_from }}"
+      - condition: template
+        value_template: "{{ use_time_to }}"
 
 
 action:
