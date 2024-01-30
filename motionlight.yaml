@@ -1,6 +1,6 @@
 blueprint:
   name: Motion Sensor with Sunset cutoffs
-  description: Turn on a light when motion is detected On At Sunset. (v1.5)
+  description: Turn on a light when motion is detected On At Sunset. (v1.6)
   domain: automation
   input:
     motion_entity:
@@ -126,7 +126,7 @@ condition:
       {% set current_time = now().strftime('%H:%M:%S') %}  # Get the current time
       {% set time_from = states('input_datetime.time_from') %}  # Get the start of the time range
       {% set time_to = states('input_datetime.time_to') %}  # Get the end of the time range
-      {% set use_time = is_state('input_boolean.use_time', 'on') %}  # Check if the use_time switch is on
+      {% set use_time = is_state('input_boolean.use_time', 'true') %}  # Check if the use_time switch is on
       {% set ilum_entity_off = states('input_boolean.ilum_entity') is not none and is_state('input_boolean.ilum_entity', 'off') %}  # Check if the ilum_entity exists and is off
       {% set lux_entity_below_value = states('sensor.lux_entity') is not none and states('sensor.lux_entity') != 'unknown' and states('sensor.lux_entity') | float < (states('input_number.lux_value') != 'unknown' and states('input_number.lux_value') | float) %}  # Check if the lux_entity exists, is not unknown, and is below the lux_value
       {% set sun_elevation_below_shift = state_attr('sun.sun', 'elevation') != 'unknown' and state_attr('sun.sun', 'elevation') | float < (states('input_number.elevation_shift') != 'unknown' and states('input_number.elevation_shift') | float) %}  # Check if the sun's elevation is not unknown and is below the elevation_shift
