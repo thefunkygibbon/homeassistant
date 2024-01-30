@@ -1,6 +1,6 @@
 blueprint:
   name: Motion Sensor with Sunset cutoffs
-  description: Turn on a light when motion is detected On At Sunset. (v1.5)
+  description: Turn on a light when motion is detected On At Sunset. (v1.6)
   domain: automation
   input:
     motion_entity:
@@ -44,7 +44,7 @@ blueprint:
 
     use_time_from:
       name: 'Use Timeslot From'
-      description: 'Enable to use Timeslot From in the automation - Time based overrides all other conditions above.'
+      description: 'Enable to use Timeslot From in the automation'
       default: true
       selector:
         boolean:
@@ -58,7 +58,7 @@ blueprint:
     
     use_time_to:
       name: 'Use Timeslot To'
-      description: 'Enable to use Timeslot To in the automation - Time based overrides all other conditions above.'
+      description: 'Enable to use Timeslot To in the automation'
       default: true
       selector:
         boolean:
