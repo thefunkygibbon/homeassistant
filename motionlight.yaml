@@ -1,6 +1,6 @@
 blueprint:
   name: Motion Sensor with Sunset cutoffs
-  description: Turn on a light when motion is detected On At Sunset. (v1.0)
+  description: Turn on a light when motion is detected On At Sunset. (v1.1)
   domain: automation
   input:
     motion_entity:
