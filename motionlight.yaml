@@ -1,6 +1,6 @@
 blueprint:
   name: Motion Sensor with Sunset cutoffs
-  description: Turn on a light when motion is detected On At Sunset. (v1.1)
+  description: Turn on a light when motion is detected On At Sunset. (v1.2)
   domain: automation
   input:
     motion_entity:
@@ -41,7 +41,6 @@ blueprint:
           max: 20
           mode: slider
           step: 1
-​
     use_time:
       name: 'Use timeslot only'
       description: 'Check to use the timeslot in the automation (this overrides all other conditions)'
@@ -148,7 +147,7 @@ condition:
 action:
   - service: light.turn_on
     target: !input target_light
-    data:
+    data_template:
       brightness_pct: '{{ target_brightness | int }}'
       color_temp: '{{ target_color_temp | int }}'
   - wait_for_trigger:
