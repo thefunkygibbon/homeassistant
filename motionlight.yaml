@@ -1,6 +1,6 @@
 blueprint:
   name: Motion Sensor with Sunset cutoffs
-  description: Turn on a light when motion is detected On At Sunset. (v1.4)
+  description: Turn on a light when motion is detected On At Sunset. (v1.5)
   domain: automation
   input:
     motion_entity:
@@ -41,21 +41,34 @@ blueprint:
           max: 10.0
           mode: slider
           step: 1.0
-          
+
+    use_time_from:
+      name: 'Use Timeslot From'
+      description: 'Enable to use Timeslot From in the automation - Time based overrides all other conditions above.'
+      default: true
+      selector:
+        boolean:
+    
     time_from:
       name: 'Timeslot from'
-      description: Tick the box if you want to use time based.  Time based overrides all other conditions above.
       default: "00:00:00"
       selector:
         time:
-      use_variable: true
-
+        visibility: "use_time_from"
+    
+    use_time_to:
+      name: 'Use Timeslot To'
+      description: 'Enable to use Timeslot To in the automation - Time based overrides all other conditions above.'
+      default: true
+      selector:
+        boolean:
+    
     time_to:
       name: 'Timeslot to'
       default: "23:59:59"
       selector:
         time:
-      use_variable: true
+        visibility: "use_time_to"
       
     target_light:
       name: Lights
@@ -136,10 +149,9 @@ condition:
   - condition: or
     conditions:
       - condition: template
-        value_template: "{{ use_time_from }}"
+        value_template: "{{ use_time_from and now().time() > strptime(time_from, '%H:%M:%S').time() }}"
       - condition: template
-        value_template: "{{ use_time_to }}"
-
+        value_template: "{{ use_time_to and now().time() < strptime(time_to, '%H:%M:%S').time() }}"
 
 action:
   - service: light.turn_on
