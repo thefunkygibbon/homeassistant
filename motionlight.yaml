@@ -1,6 +1,6 @@
 blueprint:
   name: Motion Sensor with Sunset cutoffs
-  description: Turn on a light when motion is detected On At Sunset. (v1.96)
+  description: Turn on a light when motion is detected On At Sunset. (v1.97)
   domain: automation
   input:
     motion_entity:
@@ -126,9 +126,8 @@ condition:
       {% if is_state('input_boolean.use_time', 'on') %}
         {{ now().strftime('%H:%M:%S') > states('input_datetime.time_from') and now().strftime('%H:%M:%S') < states('input_datetime.time_to') }}
       {% else %}
-        {{ (states('input_datetime.time_from') != '00:00:00' and states('input_datetime.time_to') != '00:00:00' and now().strftime('%H:%M:%S') > states('input_datetime.time_from') and now().strftime('%H:%M:%S') < states('input_datetime.time_to')) or (states('input_datetime.time_from') == '00:00:00' and states('input_datetime.time_to') == '00:00:00') or ((states('input_boolean.ilum_entity') is not none and is_state('input_boolean.ilum_entity', 'off')) or (states('sensor.lux_entity') is not none and states('sensor.lux_entity') | float < states('input_number.lux_value') | float) or (state_attr('sun.sun', 'elevation') | float < states('input_number.elevation_shift') | float)) }}
+        {{ (states('input_datetime.time_from') != '00:00:00' and states('input_datetime.time_to') != '00:00:00' and now().strftime('%H:%M:%S') > states('input_datetime.time_from') and now().strftime('%H:%M:%S') < states('input_datetime.time_to')) or (states('input_datetime.time_from') == '00:00:00' and states('input_datetime.time_to') == '00:00:00') or ((states('input_boolean.ilum_entity') is not none and is_state('input_boolean.ilum_entity', 'off')) or (states('sensor.lux_entity') is not none and states('sensor.lux_entity') != 'unknown' and states('sensor.lux_entity') | float < states('input_number.lux_value') | float) or (state_attr('sun.sun', 'elevation') != 'unknown' and state_attr('sun.sun', 'elevation') | float < states('input_number.elevation_shift') | float)) }}
       {% endif %}
-
 
 action:
   - service: light.turn_on
