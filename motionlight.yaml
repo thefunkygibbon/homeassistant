@@ -126,7 +126,7 @@ condition:
       {% if is_state('input_boolean.use_time', 'on') %}
         {{ now().strftime('%H:%M:%S') > states('input_datetime.time_from') and now().strftime('%H:%M:%S') < states('input_datetime.time_to') }}
       {% else %}
-        {{ (states('input_datetime.time_from') != '00:00:00' and states('input_datetime.time_to') != '00:00:00' and now().strftime('%H:%M:%S') > states('input_datetime.time_from') and now().strftime('%H:%M:%S') < states('input_datetime.time_to')) and (states(ilum_entity) is not none and is_state(ilum_entity, 'off') or states(lux_entity) is not none and states(lux_entity) | float < lux_value | float or state_attr('sun.sun', 'elevation') | float < states('input_number.elevation_shift') | float) }}
+        {{ (states('input_datetime.time_from') != '00:00:00' and states('input_datetime.time_to') != '00:00:00' and now().strftime('%H:%M:%S') > states('input_datetime.time_from') and now().strftime('%H:%M:%S') < states('input_datetime.time_to')) or (states(ilum_entity) is not none and is_state(ilum_entity, 'off')) or (states(lux_entity) is not none and states(lux_entity) | float < lux_value | float) or (state_attr('sun.sun', 'elevation') | float < states('input_number.elevation_shift') | float) }}
       {% endif %}
 
 action:
