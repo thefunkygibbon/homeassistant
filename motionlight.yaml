@@ -1,6 +1,6 @@
 blueprint:
   name: Motion Sensor with Sunset cutoffs
-  description: Turn on a light when motion is detected On At Sunset. (v1.4)
+  description: Turn on a light when motion is detected On At Sunset. (v1.5)
   domain: automation
   input:
     motion_entity:
@@ -123,20 +123,22 @@ trigger:
 condition:
   - condition: template
     value_template: >
-      {% set current_time = now().strftime('%H:%M:%S') %}
-      {% set time_from = states('input_datetime.time_from') %}
-      {% set time_to = states('input_datetime.time_to') %}
-      {% set use_time = is_state('input_boolean.use_time', 'on') %}
-      {% set within_time_range = current_time > time_from and current_time < time_to %}
-      {% set time_range_not_set = time_from == '00:00:00' and time_to == '00:00:00' %}
-      {% if use_time %}
-        {{ within_time_range }}
-      {% else %}
-        {{ within_time_range or time_range_not_set }}
+      {% set current_time = now().strftime('%H:%M:%S') %}  # Get the current time
+      {% set time_from = states('input_datetime.time_from') %}  # Get the start of the time range
+      {% set time_to = states('input_datetime.time_to') %}  # Get the end of the time range
+      {% set use_time = is_state('input_boolean.use_time', 'on') %}  # Check if the use_time switch is on
+      {% set ilum_entity_off = states('input_boolean.ilum_entity') is not none and is_state('input_boolean.ilum_entity', 'off') %}  # Check if the ilum_entity exists and is off
+      {% set lux_entity_below_value = states('sensor.lux_entity') is not none and states('sensor.lux_entity') != 'unknown' and states('sensor.lux_entity') | float < (states('input_number.lux_value') != 'unknown' and states('input_number.lux_value') | float) %}  # Check if the lux_entity exists, is not unknown, and is below the lux_value
+      {% set sun_elevation_below_shift = state_attr('sun.sun', 'elevation') != 'unknown' and state_attr('sun.sun', 'elevation') | float < (states('input_number.elevation_shift') != 'unknown' and states('input_number.elevation_shift') | float) %}  # Check if the sun's elevation is not unknown and is below the elevation_shift
+      {% set time_range_not_set = time_from == '00:00:00' and time_to == '00:00:00' %}  # Check if the time range is not set (both time_from and time_to are '00:00:00')
+      {% set within_time_range = current_time > time_from and current_time < time_to %}  # Check if the current time is within the time range
+      {% if use_time %}  # If the use_time switch is on
+        {{ within_time_range }}  # Only consider the time range
+      {% else %}  # If the use_time switch is off
+        {{ within_time_range or time_range_not_set or ilum_entity_off or lux_entity_below_value or sun_elevation_below_shift }}  # Consider all conditions
       {% endif %}
 
-
-
+      
 action:
   - service: light.turn_on
     target: !input target_light
