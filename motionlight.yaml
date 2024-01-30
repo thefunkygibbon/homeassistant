@@ -42,33 +42,22 @@ blueprint:
           mode: slider
           step: 1.0
 
-    use_time_from:
-      name: 'Use Timeslot From'
-      description: 'Enable to use Timeslot From in the automation'
-      default: true
+    use_time:
+      name: 'Use timeslot'
+      description: 'Check to use the timeslot in the automation (this overrides all other conditions)'
+      default: false
       selector:
         boolean:
-    
     time_from:
       name: 'Timeslot from'
       default: "00:00:00"
       selector:
-        time: {}
-      visibility: "use_time_from"
-    
-    use_time_to:
-      name: 'Use Timeslot To'
-      description: 'Enable to use Timeslot To in the automation'
-      default: true
-      selector:
-        boolean:
-    
+        time:
     time_to:
       name: 'Timeslot to'
       default: "23:59:59"
       selector:
-        time: {}
-      visibility: "use_time_to"
+        time:
 
       
     target_light:
@@ -133,26 +122,13 @@ trigger:
 condition:
   - condition: or
     conditions:
-      - condition: or
-        conditions:
-          - condition: template
-            value_template: "{{ lux_entity != '' and states(lux_entity) | float < lux_value | float }}"
-          - condition: template
-            value_template: "{{ ilum_entity != '' and states(ilum_entity) == 'off' }}"
-      - condition: or
-        conditions:
-          - condition: sun
-            after: sunset
-          - condition: sun
-            before: sunrise
       - condition: template
-        value_template: "{{ use_time_override }}"
-  - condition: or
-    conditions:
-      - condition: template
-        value_template: "{{ use_time_from and now().time() > strptime(time_from, '%H:%M:%S').time() }}"
-      - condition: template
-        value_template: "{{ use_time_to and now().time() < strptime(time_to, '%H:%M:%S').time() }}"
+        value_template: >
+          {% if is_state('input_boolean.use_time', 'on') %}
+            {{ now().strftime('%H:%M:%S') > states('input_datetime.time_from') and now().strftime('%H:%M:%S') < states('input_datetime.time_to') }}
+          {% else %}
+            {{ is_state(ilum_entity, 'off') or states(lux_entity) | float < lux_value | float or state_attr('sun.sun', 'elevation') | float < states('input_number.elevation_shift') | float }}
+          {% endif %}
 
 action:
   - service: light.turn_on
