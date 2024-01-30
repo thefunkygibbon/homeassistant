@@ -1,6 +1,6 @@
 blueprint:
   name: Motion Sensor with Sunset cutoffs
-  description: Turn on a light when motion is detected On At Sunset. (v1.6)
+  description: Turn on a light when motion is detected On At Sunset. (v1)
   domain: automation
   input:
     motion_entity:
@@ -109,11 +109,31 @@ mode: restart
 max_exceeded: silent
 
 variables:
-  target_brightness: !input 'target_brightness'
-  target_color_temp: !input 'target_color_temp'
+  motion_entity: !input motion_entity
+  ilum_entity: !input ilum_entity
+  lux_entity: !input lux_entity
+  lux_value: !input lux_value
+  elevation_shift: !input elevation_shift
+  use_time: !input use_time
   time_from: !input time_from
   time_to: !input time_to
+  target_light: !input target_light
+  target_brightness: !input target_brightness
+  target_color_temp: !input target_color_temp
+  no_motion_wait: !input no_motion_wait
   
+  within_time: >
+    {{ not use_time or time_from | today_at < now() < time_to | today_at }}
+    
+  sun_elevation_below_shift: >
+    {{ state_attr('sun.sun', 'elevation') < elevation_shift }}
+  
+  lux_check: >
+    {{ ilum_entity is not none lux_value is not none and states(ilum_entity) | float < lux_value }}
+
+  elum_check: >
+    {{ ilum_entity is not none and is_state(ilum_entity, 'on') }}
+
 trigger:
   - platform: state
     entity_id: !input motion_entity
@@ -123,26 +143,176 @@ trigger:
 condition:
   - condition: template
     value_template: >
-      {% set current_time = now().strftime('%H:%M:%S') %}  # Get the current time
-      {% set time_from = states('input_datetime.time_from') %}  # Get the start of the time range
-      {% set time_to = states('input_datetime.time_to') %}  # Get the end of the time range
-      {% set use_time = is_state('input_boolean.use_time', 'true') %}  # Check if the use_time switch is on
-      {% set ilum_entity_off = states('input_boolean.ilum_entity') is not none and is_state('input_boolean.ilum_entity', 'off') %}  # Check if the ilum_entity exists and is off
-      {% set lux_entity_below_value = states('sensor.lux_entity') is not none and states('sensor.lux_entity') != 'unknown' and states('sensor.lux_entity') | float < (states('input_number.lux_value') != 'unknown' and states('input_number.lux_value') | float) %}  # Check if the lux_entity exists, is not unknown, and is below the lux_value
-      {% set sun_elevation_below_shift = state_attr('sun.sun', 'elevation') != 'unknown' and state_attr('sun.sun', 'elevation') | float < (states('input_number.elevation_shift') != 'unknown' and states('input_number.elevation_shift') | float) %}  # Check if the sun's elevation is not unknown and is below the elevation_shift
-      {% set time_range_not_set = time_from == '00:00:00' and time_to == '00:00:00' %}  # Check if the time range is not set (both time_from and time_to are '00:00:00')
-      {% set within_time_range = current_time > time_from and current_time < time_to %}  # Check if the current time is within the time range
-      {% if use_time %}  # If the use_time switch is on
-        {{ within_time_range }}  # Only consider the time range
-      {% else %}  # If the use_time switch is off
-        {{ within_time_range or time_range_not_set or ilum_entity_off or lux_entity_below_value or sun_elevation_below_shift }}  # Consider all conditions
-      {% endif %}
-
+      {{ within_time and sun_elevation_below_shift and lux_check and elum_check }}
       
 action:
   - service: light.turn_on
     target: !input target_light
-    data_template:
+    data:
+      brightness_pct: '{{ target_brightness | int }}'
+      color_temp: '{{ target_color_temp | int }}'
+  - wait_for_trigger:
+      platform: state
+      entity_id: !input motion_entity
+      from: "on"
+      to: "off"
+  - delay: !input no_motion_wait
+  - service: light.turn_off
+    target: !input target_light
+Copy Snippet
+Edit Snippet
+ Wordwrap
+blueprint:
+  name: Motion Sensor with Sunset cutoffs
+  description: Turn on a light when motion is detected On At Sunset. (v1.6)
+  domain: automation
+  input:
+    motion_entity:
+      name: Motion Sensor
+      selector:
+        entity:
+          domain: binary_sensor
+    ilum_entity:
+      name: Light Binary Sensor (optional) 
+      default: 
+      selector:
+        entity: 
+          domain: binary_sensor
+    lux_entity:
+      name: Light Iluminance Sensor (optional)
+      default:
+      selector:
+        entity: 
+          domain: sensor
+    lux_value:
+      name: If using an illuminance sensor.  Needs to be under Lx value of light sensor (optional)
+      default: 
+      selector:
+        number:
+          min: 00
+          max: 100
+          mode: slider
+          step: 1
+          
+    elevation_shift:
+      name: Elevation Shift
+      description: Using an elevation offset (height of sun relative to the horizon) to shift the sunset trigger, either earlier or later. Positive values bring the automation start time forward, whilst negative values delay the start time.
+      default: 
+      # Use a selector, to set the time shift or offset
+      selector:
+        number:
+          min: -20
+          max: 20
+          mode: slider
+          step: 1
+​
+    use_time:
+      name: 'Use timeslot only'
+      description: 'Check to use the timeslot in the automation (this overrides all other conditions)'
+      default: false
+      selector:
+        boolean:
+    time_from:
+      name: 'Timeslot from'
+      description: 'Automation only activates after this time'
+      default: 
+      selector:
+        time:
+    time_to:
+      name: 'Timeslot to'
+      description: 'Automation only activates before this time'
+      default: 
+      selector:
+        time:
+​
+    target_light:
+      name: Lights
+      description: This is the light (or lights) that will be activated at sunset
+      selector:
+        target:
+          entity:
+            domain: light
+​
+    target_brightness:
+      name: Brightness
+      description: Brightness of the light(s) when they're activated
+      default: 50
+      selector:
+        number:
+          min: 5.0
+          max: 100.0
+          mode: slider
+          step: 5.0
+          unit_of_measurement: '%'
+​
+    target_color_temp:
+      name: Temperature
+      description: Temperature of the light(s) when they're activated
+      default: 280
+      selector:
+        number:
+          min: 153
+          max: 454
+          mode: slider
+          step: 1
+​
+    no_motion_wait:
+      name: Wait time
+      description: Time to leave the light on after last motion is detected.
+      default: 120
+      selector:
+        number:
+          min: 0
+          max: 3600
+          unit_of_measurement: seconds
+          
+​
+# If motion is detected within the delay,
+# we restart the script.
+mode: restart
+max_exceeded: silent
+​
+variables:
+  motion_entity: !input motion_entity
+  ilum_entity: !input ilum_entity
+  lux_entity: !input lux_entity
+  lux_value: !input lux_value
+  elevation_shift: !input elevation_shift
+  use_time: !input use_time
+  time_from: !input time_from
+  time_to: !input time_to
+  target_light: !input target_light
+  target_brightness: !input target_brightness
+  target_color_temp: !input target_color_temp
+  no_motion_wait: !input no_motion_wait
+  
+  within_time: >
+    {{ not use_time or time_from | today_at < now() < time_to | today_at }}
+    
+  sun_elevation_below_shift: >
+    {{ state_attr('sun.sun', 'elevation') < elevation_shift }}
+  
+  lux_check: >
+    {{ ilum_entity is not none lux_value is not none and states(ilum_entity) | float < lux_value }}
+​
+  elum_check: >
+    {{ ilum_entity is not none and is_state(ilum_entity, 'on') }}
+​
+trigger:
+  - platform: state
+    entity_id: !input motion_entity
+    from: "off"
+    to: "on"
+​
+condition:
+  - condition: template
+    value_template: >
+      {{ within_time and sun_elevation_below_shift and lux_check and elum_check }}
+      
+action:
+  - service: light.turn_on
+    target: !input target_light
+    data:
       brightness_pct: '{{ target_brightness | int }}'
       color_temp: '{{ target_color_temp | int }}'
   - wait_for_trigger:
