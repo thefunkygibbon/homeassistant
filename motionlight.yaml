@@ -1,6 +1,6 @@
 blueprint:
   name: Motion Sensor with Sunset cutoffs
-  description: Turn on a light when motion is detected On At Sunset. (v1.7)
+  description: Turn on a light when motion is detected On At Sunset. (v1.8)
   domain: automation
   input:
     motion_entity:
@@ -28,38 +28,39 @@ blueprint:
           min: 00
           max: 100
           mode: slider
-          step: 1.0
+          step: 1
           
     elevation_shift:
       name: Elevation Shift
       description: Using an elevation offset (height of sun relative to the horizon) to shift the sunset trigger, either earlier or later. Positive values bring the automation start time forward, whilst negative values delay the start time.
-      default: 0.0
+      default: 
       # Use a selector, to set the time shift or offset
       selector:
         number:
-          min: -20.0
-          max: 20.0
+          min: -20
+          max: 20
           mode: slider
-          step: 1.0
+          step: 1
 
     use_time:
-      name: 'Use timeslot'
+      name: 'Use timeslot only'
       description: 'Check to use the timeslot in the automation (this overrides all other conditions)'
       default: false
       selector:
         boolean:
     time_from:
       name: 'Timeslot from'
-      default: "00:00:00"
+      description: 'Automation only activates after this time'
+      default: 
       selector:
         time:
     time_to:
       name: 'Timeslot to'
-      default: "23:59:59"
+      description: 'Automation only activates before this time'
+      default: 
       selector:
         time:
 
-      
     target_light:
       name: Lights
       description: This is the light (or lights) that will be activated at sunset
@@ -127,7 +128,7 @@ condition:
           {% if is_state('input_boolean.use_time', 'on') %}
             {{ now().strftime('%H:%M:%S') > states('input_datetime.time_from') and now().strftime('%H:%M:%S') < states('input_datetime.time_to') }}
           {% else %}
-            {{ is_state(ilum_entity, 'off') or states(lux_entity) | float < lux_value | float or state_attr('sun.sun', 'elevation') | float < states('input_number.elevation_shift') | float }}
+            {{ (now().strftime('%H:%M:%S') > states('input_datetime.time_from') and now().strftime('%H:%M:%S') < states('input_datetime.time_to')) and (is_state(ilum_entity, 'off') or states(lux_entity) | float < lux_value | float or state_attr('sun.sun', 'elevation') | float < states('input_number.elevation_shift') | float) }}
           {% endif %}
 
 action:
