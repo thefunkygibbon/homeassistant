@@ -1,6 +1,6 @@
 blueprint:
   name: Motion Sensor with Sunset cutoffs
-  description: Turn on a light when motion is detected On At Sunset. (v1.b)
+  description: Turn on a light when motion is detected On At Sunset. (v1.c)
   domain: automation
   input:
     motion_entity:
@@ -116,8 +116,8 @@ variables:
   no_motion_wait: !input no_motion_wait
   within_time: >
     {{ not use_time or time_from | today_at < now() < time_to | today_at }}
-  sun_elevation_below_shift: 20
-#    {{ state_attr('sun.sun', 'elevation') < elevation_shift }}
+  sun_elevation_below_shift: >
+    {{ state_attr('sun.sun', 'elevation') < elevation_shift }}
   lux_check: off
 #    {{ ilum_entity is not none lux_value is not none and states(ilum_entity) | float < lux_value }}
   ilum_check: off
