@@ -1,8 +1,14 @@
 blueprint:
   name: Gibbon's Advanced Motion Sensor
-  description: Turn on a light when motion is detected On due to a number of factors.  Time of day,  sun elevation, light binary sensor or a illuminance (lux) sensor (v1.0)
+  description: Turn on a light when motion is detected On due to a number of factors.  Time of day,  sun elevation, light binary sensor or a illuminance (lux) sensor (v1.01)
   domain: automation
   input:
+    test0:
+      name: "*** Trigger Motion Sensor ***"
+      description: The following section is simply the motion entity you want to trigger the lights turning on. 
+      selector: 
+        icon:
+  
     motion_entity:
       name: Motion Sensor
       description: The entity which you want the motion to based on. 
@@ -12,6 +18,8 @@ blueprint:
     test1:
       name: "*** Condition variables ***"
       description: The following section are methods of determining if the automation should proceed.  If either of them are true then the lights will turn on. 
+      selector: 
+        icon:
     ilum_entity:
       name: Light Binary Sensor (optional) 
       description: The optional entity for a binary sensor (which should report ON for brighter than specified light level or OFF for darker than specified light level)
@@ -68,6 +76,8 @@ blueprint:
     test2:
       name: "*** Action variables ***"
       description: The following section are lights which you want turning on and to what brightness, temperature and how long you wish to wait until they turn off again when there is no motion detected.  
+      selector:
+        icon:
 
     target_light:
       name: Lights
@@ -92,11 +102,10 @@ blueprint:
       description: Temperature of the light(s) when they're activated
       default: 280
       selector:
-        number:
-          min: 153
-          max: 454
-          mode: slider
-          step: 1
+        color_temp:
+          min_mireds: 153
+          max_mireds: 500
+
     no_motion_wait:
       name: Wait time
       description: Time to leave the light on after last motion is detected.
