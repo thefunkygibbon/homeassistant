@@ -1,6 +1,6 @@
 blueprint:
   name: Motion Sensor with Sunset cutoffs
-  description: Turn on a light when motion is detected On At Sunset. (v1.01)
+  description: Turn on a light when motion is detected On At Sunset. (v1.a)
   domain: automation
   input:
     motion_entity:
@@ -28,8 +28,7 @@ blueprint:
           min: 00
           max: 100
           mode: slider
-          step: 1
-          
+          step: 1  
     elevation_shift:
       name: Elevation Shift
       description: Using an elevation offset (height of sun relative to the horizon) to shift the sunset trigger, either earlier or later. Positive values bring the automation start time forward, whilst negative values delay the start time.
@@ -41,7 +40,6 @@ blueprint:
           max: 20
           mode: slider
           step: 1
-
     use_time:
       name: 'Use timeslot only'
       description: 'Check to use the timeslot in the automation (this overrides all other conditions)'
@@ -60,7 +58,6 @@ blueprint:
       default: 
       selector:
         time:
-
     target_light:
       name: Lights
       description: This is the light (or lights) that will be activated at sunset
@@ -68,7 +65,6 @@ blueprint:
         target:
           entity:
             domain: light
-
     target_brightness:
       name: Brightness
       description: Brightness of the light(s) when they're activated
@@ -80,7 +76,6 @@ blueprint:
           mode: slider
           step: 5.0
           unit_of_measurement: '%'
-
     target_color_temp:
       name: Temperature
       description: Temperature of the light(s) when they're activated
@@ -91,7 +86,6 @@ blueprint:
           max: 454
           mode: slider
           step: 1
-
     no_motion_wait:
       name: Wait time
       description: Time to leave the light on after last motion is detected.
@@ -101,7 +95,6 @@ blueprint:
           min: 0
           max: 3600
           unit_of_measurement: seconds
-          
 
 # If motion is detected within the delay,
 # we restart the script.
@@ -121,17 +114,13 @@ variables:
   target_brightness: !input target_brightness
   target_color_temp: !input target_color_temp
   no_motion_wait: !input no_motion_wait
-  
   within_time: >
     {{ not use_time or time_from | today_at < now() < time_to | today_at }}
-    
   sun_elevation_below_shift: >
     {{ state_attr('sun.sun', 'elevation') < elevation_shift }}
-  
   lux_check: >
     {{ ilum_entity is not none lux_value is not none and states(ilum_entity) | float < lux_value }}
-
-  elum_check: >
+  ilum_check: >
     {{ ilum_entity is not none and is_state(ilum_entity, 'on') }}
 
 trigger:
@@ -143,12 +132,12 @@ trigger:
 condition:
   - condition: template
     value_template: >
-      {{ within_time and sun_elevation_below_shift and lux_check and elum_check }}
-      
+      {{ within_time and sun_elevation_below_shift and lux_check and ilum_check }}
+  
 action:
   - service: light.turn_on
     target: !input target_light
-    data:
+    data_template:
       brightness_pct: '{{ target_brightness | int }}'
       color_temp: '{{ target_color_temp | int }}'
   - wait_for_trigger:
