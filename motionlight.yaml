@@ -10,7 +10,7 @@ blueprint:
         entity:
           domain: binary_sensor
     test1:
-      name: *** Condition variables ***
+      name: "*** Condition variables ***"
       description: The following section are methods of determining if the automation should proceed.  If either of them are true then the lights will turn on. 
     ilum_entity:
       name: Light Binary Sensor (optional) 
@@ -66,7 +66,7 @@ blueprint:
         time:
 
     test2:
-      name: *** Action variables ***
+      name: "*** Action variables ***"
       description: The following section are lights which you want turning on and to what brightness, temperature and how long you wish to wait until they turn off again when there is no motion detected.  
 
     target_light:
