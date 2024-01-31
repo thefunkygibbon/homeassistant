@@ -1,6 +1,6 @@
 blueprint:
   name: Motion Sensor with Sunset cutoffs
-  description: Turn on a light when motion is detected On At Sunset. (v1.f)
+  description: Turn on a light when motion is detected On At Sunset. (v1.g)
   domain: automation
   input:
     motion_entity:
@@ -134,11 +134,10 @@ trigger:
 condition:
   - condition: template
     value_template: >
-##      {{ within_time and sun_elevation_below_shift and lux_check and ilum_check }}
-      {% if use_time %}  # If the use_time switch is on
-        {{ within_time_use }}  # Only consider the time range
-      {% else %}  # If the use_time switch is off
-        {{ within_time_range and (time_range_not_set or ilum_check or lux_check or sun_elevation_below_shift) }}  # Consider all conditions
+      {% if use_time %}
+        {{ within_time_use }}
+      {% else %}
+        {{ within_time_range and (time_range_not_set or ilum_check or lux_check or sun_elevation_below_shift) }}
       {% endif %}
   
 action:
