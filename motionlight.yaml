@@ -89,6 +89,7 @@ blueprint:
         target:
           entity:
             domain: light
+            domain: switch
     target_brightness:
       name: Brightness
       description: Brightness of the light(s) when they're activated
