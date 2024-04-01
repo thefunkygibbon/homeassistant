@@ -1,6 +1,6 @@
 blueprint:
   name: Gibbon's Advanced Motion Sensor
-  description: Turn on a light when motion is detected On due to a number of factors.  Time of day,  sun elevation, light binary sensor or a illuminance (lux) sensor (v1.01)
+  description: Turn on a light when motion is detected On due to a number of factors.  Time of day,  sun elevation, light binary sensor or a illuminance (lux) sensor (v1.1)
   domain: automation
   input:
     test0:
@@ -84,12 +84,11 @@ blueprint:
 
     target_light:
       name: Lights
-      description: This is the light(s) that will be activated at sunset
+      description: This is the light(s) that will be activated at sunset (use helper to change to a light if its a switch)
       selector:
         target:
           entity:
             domain: light
-            domain: switch
     target_brightness:
       name: Brightness
       description: Brightness of the light(s) when they're activated
