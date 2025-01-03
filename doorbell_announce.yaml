@@ -1,6 +1,6 @@
 blueprint:
   name: Doorbell - Notify Alexa
-  description: "Make an announcement over Amazon Echo devices when the doorbell is pushed."
+  description: "Make an announcement over Amazon Echo devices when the doorbell is pushed. v1.1"
 
   domain: automation
   input:
@@ -68,7 +68,7 @@ blueprint:
       name: Message (Optional)
       description: 'Default: "There is Somebody at the Door!"'
       default: There is Somebody at the Door
-  source_url: https://gist.github.com/seamus65/66ec3d2ac935686684c95fe79bbf309a
+  source_url: https://github.com/thefunkygibbon/homeassistant/blob/main/doorbell_announce.yaml
 mode: single
 
 variables:
