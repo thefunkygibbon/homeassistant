@@ -1,5 +1,5 @@
 blueprint:
-  name: Doorbell - Notify Alexa
+  name: Doorbell - Announce Alexa
   description: "Make an announcement over Amazon Echo devices when the doorbell is pushed. v1.1"
 
   domain: automation
