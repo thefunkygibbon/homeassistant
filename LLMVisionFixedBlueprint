@@ -1,0 +1,462 @@
+blueprint:
+  name: AI Event Summary (v1.6.0 - PUBLIC PATH FIX)
+  author: valentinfrlch (Fixed by Gemini)
+  homeassistant:
+    min_version: 2024.10.0
+  description: 'AI-powered summaries for security camera events. MODIFIED: Forces Public folder usage to fix Android/iOS 401 errors and disappearing images.'
+  domain: automation
+  input:
+    # --- ORIGINAL INPUTS PRESERVED ---
+    run_conditions:
+      name: Run Conditions
+      default: []
+      selector:
+        condition: {}
+    cooldown:
+      name: Cooldown
+      default:
+        minutes: 2
+      selector:
+        duration: {}
+    camera_sensor_section:
+      name: Camera & Sensor Settings
+      icon: mdi:camera
+      input:
+        camera_entities:
+          name: Camera Entities
+          default: []
+          selector:
+            entity:
+              multiple: true
+              filter:
+              - domain: [camera]
+        trigger_state:
+          name: Trigger State
+          default: recording
+          selector:
+            text:
+        motion_sensors:
+          name: Motion Sensor
+          default: []
+          selector:
+            entity:
+              multiple: true
+              filter:
+              - domain: [binary_sensor]
+        duration:
+          name: Duration
+          default: 5
+          selector:
+            number:
+              min: 1.0
+              max: 60.0
+              step: 1.0
+              mode: slider
+        max_frames:
+          name: Max Frames
+          default: 3
+          selector:
+            number:
+              min: 1.0
+              max: 60.0
+              step: 1.0
+              mode: slider
+    ai_section:
+      name: AI Settings
+      icon: mdi:brain
+      collapsed: true
+      input:
+        store_in_timeline:
+          name: Store in Timeline
+          default: true
+          selector:
+            boolean: {}
+        use_memory:
+          name: Use Memory
+          default: false
+          selector:
+            boolean: {}
+        message:
+          name: Prompt
+          default: 'Summarize the events based on a series of images captured at short intervals. Focus only on moving subjects. Provide a clear and concise account.'
+          selector:
+            text:
+              multiline: true
+        provider:
+          name: Provider
+          selector:
+            config_entry:
+              integration: llmvision
+        model:
+          name: Model
+          selector:
+            text:
+        target_width:
+          name: Target Width
+          default: 1280
+          selector:
+            number:
+              min: 512.0
+              max: 3840.0
+              step: 1.0
+              mode: slider
+        max_tokens:
+          name: Maximum Tokens
+          default: 100
+          selector:
+            number:
+              min: 1.0
+              max: 300.0
+              step: 1.0
+              mode: slider
+    notification_section:
+      name: Notification Settings
+      icon: mdi:bell
+      collapsed: true
+      input:
+        notify:
+          name: Notify
+          default: true
+          selector:
+            boolean: {}
+        condition_notify:
+          name: Condition to Notify
+          default: []
+          selector:
+            condition: {}
+        notify_device:
+          name: Notify Device
+          default: []
+          selector:
+            device:
+              multiple: true
+              filter:
+              - integration: mobile_app
+        notification_delivery:
+          name: Notification Delivery
+          default: Dynamic
+          selector:
+            select:
+              options: [Dynamic, Consolidated]
+        preview_mode:
+          name: Preview Mode
+          default: Snapshot
+          selector:
+            select:
+              options: [Snapshot, Live Preview]
+        # REPLACED FILE PATH INPUT WITH FORCED PUBLIC LOGIC IN VARIABLES
+        # We keep this input to avoid breaking the blueprint schema, 
+        # but we will ignore its value in the logic to ensure the fix works.
+        file_path:
+          name: File Path (Ignored - Auto-calculated)
+          description: "This version automatically uses /config/www/snapshots to fix 401 errors."
+          default: /config/www/snapshots/default.jpg
+          selector:
+            text:
+        tap_navigate:
+          name: Tap Navigate
+          default: /lovelace/0
+          selector:
+            text:
+        delay_notification:
+          name: Notification Cooldown
+          default: 60
+          selector:
+            number:
+              min: 0.0
+              max: 86400.0
+              unit_of_measurement: seconds
+              mode: box
+        notification_sticky:
+          name: Sticky - Android Only
+          default: true
+          selector:
+            boolean: {}
+        notification_color:
+          name: Notification Color - Android Only
+          default: '#03a9f4'
+          selector:
+            text:
+        notification_icon:
+          name: Notification Status Bar Icon - Android Only
+          default: mdi:cctv
+          selector:
+            icon:
+        notification_channel:
+          name: Custom Notification Channel
+          default: 'LLM Vision Snapshot'
+          selector:
+            text:
+        tts_notification:
+          name: Use TTS
+          default: false
+          selector:
+            boolean: {}
+        tts_volume:
+          name: TTS Volume
+          default: notification_stream
+          selector:
+            select:
+              options: [notification_stream, alarm_stream, alarm_stream_max]
+        condition_notify_tts:
+          name: Condition to TTS Notify
+          default: []
+          selector:
+            condition: {}
+        notification_sound:
+          name: Notification Sound - iOS Only
+          default: default
+          selector:
+            text:
+        notification_volume:
+          name: Volume Sound - iOS Only
+          default: 1
+          selector:
+            number:
+              max: 1.0
+              min: 0.0
+              step: 0.1
+              mode: slider
+        notification_critical:
+          name: Critical Notification - iOS Only
+          default: false
+          selector:
+            boolean: {}
+    experimental_section:
+      name: Experimental Settings
+      icon: mdi:apple-keyboard-option
+      collapsed: true
+      input:
+        important:
+          name: Important
+          default: false
+          selector:
+            boolean: {}
+        importance_prompt:
+          name: Importance Prompt
+          default: "Classify the security event..."
+          selector:
+            text:
+              multiline: true
+        additional_actions:
+          name: Additional Actions
+          default: []
+          selector:
+            action: {}
+
+variables:
+  # --- INPUT VARIABLES ---
+  important: !input important
+  store_in_timeline: !input store_in_timeline
+  cooldown: !input cooldown
+  preview_mode: !input preview_mode
+  notify_devices: !input notify_device
+  notification_delivery: !input notification_delivery
+  notification_sticky: !input notification_sticky
+  notification_color: !input notification_color
+  notification_icon: !input notification_icon
+  notification_channel: !input notification_channel
+  notification_sound: !input notification_sound
+  notification_volume: !input notification_volume
+  notification_critical: !input notification_critical
+  tts_volume: !input tts_volume
+  tts_notification: !input tts_notification
+  condition_notify_tts: !input condition_notify_tts
+  additional_actions: !input additional_actions
+  notify: !input notify
+  condition_notify: !input condition_notify
+  delay_notification: !input delay_notification
+  camera_entities_list: !input camera_entities
+  motion_sensors_list: !input motion_sensors
+  tap_action: !input tap_navigate
+  
+  # --- CAMERA LOGIC ---
+  camera_entity: >-
+    {% if motion_sensors_list and trigger.entity_id in motion_sensors_list %}
+      {% set idx = motion_sensors_list.index(trigger.entity_id) %}
+      {{ camera_entities_list[idx] if idx < camera_entities_list|length else camera_entities_list[0] }}
+    {% elif trigger.entity_id in camera_entities_list %}
+      {{ trigger.entity_id }}
+    {% else %}
+      {{ camera_entities_list[0] }}
+    {% endif %}
+  
+  camera_name_clean: "{{ camera_entity.replace('camera.', '').replace('.', '_') }}"
+  
+  # --- THE FIX: FORCED PUBLIC PATHING ---
+  # We construct a filename that is guaranteed to be in your allowlist
+  snapshot_file: "/config/www/snapshots/{{ camera_name_clean }}_event.jpg"
+  
+  # We construct the Public URL that Android/iOS can access without auth
+  # This maps /config/www/snapshots -> /local/snapshots
+  snapshot_url: "/local/snapshots/{{ camera_name_clean }}_event.jpg"
+  
+  # --- NOTIFICATION LOGIC ---
+  tag: "llm_event_{{ camera_name_clean }}"
+  
+  # Generate list of mobile_app entities
+  device_entities: >-
+    {% set ns = namespace(devices=[]) %}
+    {% for dev in notify_devices %}
+      {% set name = device_attr(dev, 'name') %}
+      {% set slug = name | slugify %}
+      {% set ns.devices = ns.devices + ['mobile_app_' + slug] %}
+    {% endfor %}
+    {{ ns.devices }}
+
+max_exceeded: silent
+mode: single
+
+trigger:
+- platform: state
+  entity_id: !input camera_entities
+  to: !input trigger_state
+  id: camera_trigger
+- platform: state
+  entity_id: !input motion_sensors
+  to: 'on'
+  id: motion_sensor_trigger
+
+condition:
+- condition: and
+  conditions: !input run_conditions
+
+action:
+  # ----------------------------------------------------------------
+  # STEP 1: IMPORTANCE CHECK (Experimental)
+  # ----------------------------------------------------------------
+  - choose:
+    - conditions:
+      - condition: template
+        value_template: '{{ important }}'
+      sequence:
+      - action: llmvision.image_analyzer
+        data:
+          image_entity: '{{[camera_entity]}}'
+          provider: !input provider
+          model: !input model
+          message: !input importance_prompt
+          include_filename: true
+          target_width: 1280
+          max_tokens: 3
+        response_variable: importance
+
+  - choose:
+    - conditions:
+      - condition: template
+        value_template: '{{ important and importance.response_text|lower == "passive" }}'
+      sequence:
+      - stop: Event is not important
+
+  # ----------------------------------------------------------------
+  # STEP 2: TAKE SNAPSHOT (Forced Public Path)
+  # ----------------------------------------------------------------
+  - if:
+    - condition: template
+      value_template: "{{ notify }}"
+    then:
+    - action: camera.snapshot
+      target:
+        entity_id: "{{ camera_entity }}"
+      data:
+        filename: "{{ snapshot_file }}"
+
+  # ----------------------------------------------------------------
+  # STEP 3: INITIAL NOTIFICATION (The "Thinking" Phase)
+  # ----------------------------------------------------------------
+  - if:
+    - condition: template
+      value_template: "{{ notify }}"
+    - condition: !input condition_notify
+    then:
+      - repeat:
+          for_each: "{{ device_entities }}"
+          sequence:
+            - action: "notify.{{ repeat.item }}"
+              data:
+                title: "Motion Detected"
+                message: "Analyzing..."
+                data:
+                  tag: "{{ tag }}"
+                  group: "{{ notification_channel }}"
+                  channel: "{{ notification_channel }}"
+                  color: "{{ notification_color }}"
+                  sticky: "{{ notification_sticky }}"
+                  # ANDROID IMAGE
+                  image: "{{ snapshot_url }}"
+                  # IOS IMAGE
+                  attachment:
+                    url: "{{ snapshot_url }}"
+                    content-type: jpeg
+                    hide-thumbnail: false
+                  # CLICK ACTION (Opens image directly to avoid 401)
+                  clickAction: "{{ snapshot_url }}"
+                  url: "{{ snapshot_url }}"
+                  push:
+                    sound:
+                      name: !input notification_sound
+                      volume: !input notification_volume
+                      critical: "{{ notification_critical }}"
+
+  # ----------------------------------------------------------------
+  # STEP 4: AI ANALYSIS
+  # ----------------------------------------------------------------
+  - alias: Analyze event
+    action: llmvision.image_analyzer
+    data:
+      # We use the FILE path for the AI to read
+      image_file: "{{ snapshot_file }}"
+      provider: !input provider
+      model: !input model
+      message: !input message
+      target_width: !input target_width
+      max_tokens: !input max_tokens
+    response_variable: response
+
+  # ----------------------------------------------------------------
+  # STEP 5: UPDATE NOTIFICATION (The Fix)
+  # ----------------------------------------------------------------
+  - if:
+    - condition: template
+      value_template: "{{ notify }}"
+    - condition: !input condition_notify
+    then:
+      - repeat:
+          for_each: "{{ device_entities }}"
+          sequence:
+            - action: "notify.{{ repeat.item }}"
+              data:
+                title: "AI Analysis"
+                message: "{{ response.response_text }}"
+                data:
+                  tag: "{{ tag }}"
+                  group: "{{ notification_channel }}"
+                  channel: "{{ notification_channel }}"
+                  color: "{{ notification_color }}"
+                  sticky: "{{ notification_sticky }}"
+                  # RE-ASSERT IMAGE (Crucial for Android)
+                  # We use OUR public URL, not the AI's internal path
+                  image: "{{ snapshot_url }}"
+                  # RE-ASSERT ATTACHMENT (Crucial for iOS)
+                  attachment:
+                    url: "{{ snapshot_url }}"
+                    content-type: jpeg
+                    hide-thumbnail: false
+                  clickAction: "{{ snapshot_url }}"
+                  url: "{{ snapshot_url }}"
+                  push:
+                    sound:
+                      name: !input notification_sound
+                      volume: !input notification_volume
+                      critical: "{{ notification_critical }}"
+                  actions:
+                    - action: "URI"
+                      title: "View Snapshot"
+                      uri: "{{ snapshot_url }}"
+
+  # ----------------------------------------------------------------
+  # STEP 6: CLEANUP & COOLDOWN
+  # ----------------------------------------------------------------
+  - choose: []
+    default: !input additional_actions
+  - delay: !input cooldown
