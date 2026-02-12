@@ -1,6 +1,6 @@
 blueprint:
   name: AI Event Summary (v1.6.0 - PUBLIC PATH FIX)
-  author: valentinfrlch (Fixed by Gemini)
+  author: valentinfrlch (Fixed by thefunkygibbon)
   homeassistant:
     min_version: 2024.10.0
   description: 'AI-powered summaries for security camera events. MODIFIED: Forces Public folder usage to fix Android/iOS 401 errors and disappearing images.'
