@@ -1,9 +1,9 @@
 blueprint:
-  name: AI Event Summary - thefunkygibbon fix (v1.6.2)
+  name: AI Event Summary - thefunkygibbon edit (v1.6.3 - Memory & Safe Clean)
   author: valentinfrlch (Refined by thefunkygibbon)
   homeassistant:
     min_version: 2024.10.0
-  description: 'AI-powered summaries. RESTORED to v1.6.0 logic. ADDED: Safe unique filenames and optional auto-delete.'
+  description: 'AI-powered summaries. RESTORED: v1.6.0 logic + Memory + Safe Unique Paths + Optional Cleanup.'
   domain: automation
   input:
     # --- TRIGGER SETTINGS ---
@@ -45,6 +45,12 @@ blueprint:
       selector:
         text:
           multiline: true
+    use_memory:
+      name: Use Memory
+      description: "Enable if your AI provider supports memory/conversation history."
+      default: false
+      selector:
+        boolean: {}
     duration:
       name: Duration
       default: 5
@@ -103,6 +109,7 @@ variables:
   notify_devices: !input notify_device
   auto_cleanup: !input auto_cleanup
   cleanup_delay: !input cleanup_delay
+  use_memory: !input use_memory
   
   # Camera Logic (The v1.6.0 Version)
   camera_entity: >-
@@ -117,8 +124,7 @@ variables:
 
   camera_name_clean: "{{ camera_entity.replace('camera.', '').replace('.', '_') }}"
   
-  # SAFE OBFUSCATION
-  # Uses timestamp which is a simple number - no weird characters to crash the path
+  # SAFE UNIQUE PATHING
   unique_id: "{{ as_timestamp(now()) | int }}"
   snapshot_file: "/config/www/snapshots/{{ camera_name_clean }}_{{ unique_id }}.jpg"
   snapshot_url: "/local/snapshots/{{ camera_name_clean }}_{{ unique_id }}.jpg"
@@ -173,7 +179,7 @@ action:
               clickAction: "{{ snapshot_url }}"
               url: "{{ snapshot_url }}"
 
-  # 3. Stream Analyzer (Restored Original Logic)
+  # 3. Stream Analyzer (Memory Restored)
   - alias: Analyze event
     action: llmvision.stream_analyzer
     data:
@@ -181,6 +187,7 @@ action:
       provider: !input provider
       model: !input model
       message: !input message
+      use_memory: "{{ use_memory }}" # Memory parameter restored here
       duration: !input duration
       max_frames: !input max_frames
       store_in_timeline: !input store_in_timeline
