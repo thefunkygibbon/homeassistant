@@ -1,5 +1,5 @@
 blueprint:
-  name: "Modern Doorbell & Door Announcer (Sound or TTS)"
+  name: "Modern Doorbell & Door Announcer (Fixed)"
   description: >
     Announce doorbell presses or door openings over Alexa. 
     Choose between a built-in sound or a custom voice message.
@@ -7,7 +7,7 @@ blueprint:
   input:
     trigger_sensor:
       name: Doorbell or Door Sensor
-      description: The binary sensor that triggers the announcement (Doorbell or Door Contact).
+      description: The binary sensor that triggers the announcement.
       selector:
         entity:
           domain: binary_sensor
@@ -31,13 +31,13 @@ blueprint:
               value: "sound"
     tts_message:
       name: Voice Message
-      description: The sentence Alexa will speak (Only used if Voice Message is selected).
+      description: The sentence Alexa will speak.
       default: "There is someone at the door"
       selector:
         text:
     sound_file:
       name: Sound File Path
-      description: "Example: 'amzn_sfx_doorbell_chime_01' or a local URL (Only used if Sound File is selected)."
+      description: "Example: 'amzn_sfx_doorbell_chime_01' or a local media URL."
       default: "amzn_sfx_doorbell_chime_01"
       selector:
         text:
@@ -53,13 +53,22 @@ blueprint:
           mode: slider
     repeat_delay:
       name: Repeat Delay (Seconds)
-      description: If you want the announcement to play twice, set the delay here. Set to 0 to play only once.
+      description: Set to 0 to play only once.
       default: 0
       selector:
         number:
           min: 0
           max: 30
           unit_of_measurement: s
+
+# This section maps the inputs to variables so they work inside templates {{ }}
+variables:
+  v_volume: !input announcement_volume
+  v_type: !input announcement_type
+  v_repeat: !input repeat_delay
+  v_devices: !input echo_devices
+  v_message: !input tts_message
+  v_sound: !input sound_file
 
 mode: single
 
@@ -70,66 +79,65 @@ trigger:
     to: "on"
 
 action:
-  # 1. Set the volume if specified
+  # 1. Set the volume if specified (greater than 0)
   - if:
       - condition: template
-        value_template: "{{ !input announcement_volume > 0 }}"
+        value_template: "{{ v_volume | float > 0 }}"
     then:
       - service: media_player.volume_set
         target:
-          entity_id: !input echo_devices
+          entity_id: "{{ v_devices }}"
         data:
-          volume_level: !input announcement_volume
+          volume_level: "{{ v_volume | float }}"
 
   # 2. Perform the announcement (First time)
   - choose:
-      # Logic for TTS
       - conditions:
           - condition: template
-            value_template: "{{ announcement_type == 'tts' }}"
+            value_template: "{{ v_type == 'tts' }}"
         sequence:
           - service: notify.alexa_media
             data:
-              target: !input echo_devices
-              message: !input tts_message
+              target: "{{ v_devices }}"
+              message: "{{ v_message }}"
               data:
                 type: tts
-      # Logic for Sound
       - conditions:
           - condition: template
-            value_template: "{{ announcement_type == 'sound' }}"
+            value_template: "{{ v_type == 'sound' }}"
         sequence:
           - service: media_player.play_media
             target:
-              entity_id: !input echo_devices
+              entity_id: "{{ v_devices }}"
             data:
-              media_content_id: !input sound_file
+              media_content_id: "{{ v_sound }}"
               media_content_type: sound
 
-  # 3. Handle the Repeat (If configured)
+  # 3. Handle the Repeat (If delay is greater than 0)
   - if:
       - condition: template
-        value_template: "{{ !input repeat_delay > 0 }}"
+        value_template: "{{ v_repeat | int > 0 }}"
     then:
-      - delay: !input repeat_delay
+      - delay:
+          seconds: "{{ v_repeat | int }}"
       - choose:
           - conditions:
               - condition: template
-                value_template: "{{ announcement_type == 'tts' }}"
+                value_template: "{{ v_type == 'tts' }}"
             sequence:
               - service: notify.alexa_media
                 data:
-                  target: !input echo_devices
-                  message: !input tts_message
+                  target: "{{ v_devices }}"
+                  message: "{{ v_message }}"
                   data:
                     type: tts
           - conditions:
               - condition: template
-                value_template: "{{ announcement_type == 'sound' }}"
+                value_template: "{{ v_type == 'sound' }}"
             sequence:
               - service: media_player.play_media
                 target:
-                  entity_id: !input echo_devices
+                  entity_id: "{{ v_devices }}"
                 data:
-                  media_content_id: !input sound_file
+                  media_content_id: "{{ v_sound }}"
                   media_content_type: sound
