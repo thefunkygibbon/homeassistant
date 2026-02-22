@@ -1,0 +1,135 @@
+blueprint:
+  name: "Modern Doorbell & Door Announcer (Sound or TTS)"
+  description: >
+    Announce doorbell presses or door openings over Alexa. 
+    Choose between a built-in sound or a custom voice message.
+  domain: automation
+  input:
+    trigger_sensor:
+      name: Doorbell or Door Sensor
+      description: The binary sensor that triggers the announcement (Doorbell or Door Contact).
+      selector:
+        entity:
+          domain: binary_sensor
+    echo_devices:
+      name: Alexa Devices
+      description: Select all Alexa devices you want to announce on.
+      selector:
+        entity:
+          domain: media_player
+          multiple: true
+    announcement_type:
+      name: Announcement Type
+      description: Choose if Alexa should play a sound or speak your custom text.
+      default: "tts"
+      selector:
+        select:
+          options:
+            - label: "Voice Message (TTS)"
+              value: "tts"
+            - label: "Play Sound File"
+              value: "sound"
+    tts_message:
+      name: Voice Message
+      description: The sentence Alexa will speak (Only used if Voice Message is selected).
+      default: "There is someone at the door"
+      selector:
+        text:
+    sound_file:
+      name: Sound File Path
+      description: "Example: 'amzn_sfx_doorbell_chime_01' or a local URL (Only used if Sound File is selected)."
+      default: "amzn_sfx_doorbell_chime_01"
+      selector:
+        text:
+    announcement_volume:
+      name: Announcement Volume
+      description: The volume level (0 to 1). Set to 0 to keep current volume.
+      default: 0.5
+      selector:
+        number:
+          min: 0
+          max: 1
+          step: 0.05
+          mode: slider
+    repeat_delay:
+      name: Repeat Delay (Seconds)
+      description: If you want the announcement to play twice, set the delay here. Set to 0 to play only once.
+      default: 0
+      selector:
+        number:
+          min: 0
+          max: 30
+          unit_of_measurement: s
+
+mode: single
+
+trigger:
+  - platform: state
+    entity_id: !input trigger_sensor
+    from: "off"
+    to: "on"
+
+action:
+  # 1. Set the volume if specified
+  - if:
+      - condition: template
+        value_template: "{{ !input announcement_volume > 0 }}"
+    then:
+      - service: media_player.volume_set
+        target:
+          entity_id: !input echo_devices
+        data:
+          volume_level: !input announcement_volume
+
+  # 2. Perform the announcement (First time)
+  - choose:
+      # Logic for TTS
+      - conditions:
+          - condition: template
+            value_template: "{{ announcement_type == 'tts' }}"
+        sequence:
+          - service: notify.alexa_media
+            data:
+              target: !input echo_devices
+              message: !input tts_message
+              data:
+                type: tts
+      # Logic for Sound
+      - conditions:
+          - condition: template
+            value_template: "{{ announcement_type == 'sound' }}"
+        sequence:
+          - service: media_player.play_media
+            target:
+              entity_id: !input echo_devices
+            data:
+              media_content_id: !input sound_file
+              media_content_type: sound
+
+  # 3. Handle the Repeat (If configured)
+  - if:
+      - condition: template
+        value_template: "{{ !input repeat_delay > 0 }}"
+    then:
+      - delay: !input repeat_delay
+      - choose:
+          - conditions:
+              - condition: template
+                value_template: "{{ announcement_type == 'tts' }}"
+            sequence:
+              - service: notify.alexa_media
+                data:
+                  target: !input echo_devices
+                  message: !input tts_message
+                  data:
+                    type: tts
+          - conditions:
+              - condition: template
+                value_template: "{{ announcement_type == 'sound' }}"
+            sequence:
+              - service: media_player.play_media
+                target:
+                  entity_id: !input echo_devices
+                data:
+                  media_content_id: !input sound_file
+                  media_content_type: sound
