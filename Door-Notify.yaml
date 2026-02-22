@@ -1,8 +1,10 @@
 blueprint:
-  name: "Modern Doorbell & Door Announcer (v1.2)"
+  name: "Alexa Doorbell Announcer (V1.3)"
   description: >
-    Announce doorbell or door events over Alexa. 
-    Supports Alexa Sound Library (using URIs) or custom Voice Messages.
+    Announce doorbell, door or any binary sensor events over Alexa. 
+    Supports Alexa Sound Library or custom Voice Messages.
+    
+    Browse the full sound library here: https://developer.amazon.com/en-US/docs/alexa/custom-skills/ask-soundlibrary-reference.html
   domain: automation
   input:
     trigger_sensor:
@@ -35,10 +37,31 @@ blueprint:
       default: "There is someone at the door"
       selector:
         text:
-    sound_uri:
-      name: Amazon Sound URI
-      description: "Copy the URI from the Amazon site. Example: soundbank://soundlibrary/animals/amzn_sfx_bear_groan_roar_01"
+    sound_preset:
+      name: Popular Sound Presets
+      description: "Choose a common sound, or select 'Custom' to use the URI box below."
       default: "soundbank://soundlibrary/home/amzn_sfx_doorbell_chime_01"
+      selector:
+        select:
+          options:
+            - label: "Standard Doorbell 1"
+              value: "soundbank://soundlibrary/home/amzn_sfx_doorbell_chime_01"
+            - label: "Classic Doorbell 2"
+              value: "soundbank://soundlibrary/home/amzn_sfx_doorbell_chime_02"
+            - label: "Electronic Chime"
+              value: "soundbank://soundlibrary/home/amzn_sfx_doorbell_chime_03"
+            - label: "Church Bell"
+              value: "soundbank://soundlibrary/home/amzn_sfx_church_bell_1x_01"
+            - label: "Sci-Fi Chime"
+              value: "soundbank://soundlibrary/scifi/amzn_sfx_scifi_doorbell_01"
+            - label: "--- USE CUSTOM URI BELOW ---"
+              value: "custom"
+    sound_uri:
+      name: Custom Amazon Sound URI
+      description: >
+        Only used if 'Custom' is selected above. 
+        Get URIs here: https://developer.amazon.com/en-US/docs/alexa/custom-skills/ask-soundlibrary-reference.html
+      default: "soundbank://soundlibrary/animals/amzn_sfx_bear_groan_roar_01"
       selector:
         text:
     announcement_volume:
@@ -62,10 +85,10 @@ blueprint:
           unit_of_measurement: s
 
 variables:
-  # Map inputs to variables for use in templates
   v_devices: !input echo_devices
   v_type: !input announcement_type
   v_message: !input tts_message
+  v_preset: !input sound_preset
   v_uri: !input sound_uri
   v_volume: !input announcement_volume
   v_repeat: !input repeat_delay
@@ -100,7 +123,11 @@ action:
         {% if v_type == 'tts' %}
           {{ v_message }}
         {% else %}
-          <audio src='{{ v_uri }}'/>
+          {% if v_preset == 'custom' %}
+            <audio src='{{ v_uri }}'/>
+          {% else %}
+            <audio src='{{ v_preset }}'/>
+          {% endif %}
         {% endif %}
 
   # 3. Handle Repeat
@@ -119,5 +146,9 @@ action:
             {% if v_type == 'tts' %}
               {{ v_message }}
             {% else %}
-              <audio src='{{ v_uri }}'/>
+              {% if v_preset == 'custom' %}
+                <audio src='{{ v_uri }}'/>
+              {% else %}
+                <audio src='{{ v_preset }}'/>
+              {% endif %}
             {% endif %}
