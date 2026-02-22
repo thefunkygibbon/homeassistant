@@ -1,49 +1,49 @@
 blueprint:
-  name: "Modern Doorbell & Door Announcer v1.1"
+  name: "Modern Doorbell & Door Announcer (v1.2)"
   description: >
-    Announce doorbell presses or door openings over Alexa. 
-    Choose between a built-in sound or a custom voice message.
+    Announce doorbell or door events over Alexa. 
+    Supports Alexa Sound Library (using URIs) or custom Voice Messages.
   domain: automation
   input:
     trigger_sensor:
       name: Doorbell or Door Sensor
-      description: The binary sensor that triggers the announcement.
+      description: The sensor that triggers the announcement (Doorbell or Contact).
       selector:
         entity:
           domain: binary_sensor
     echo_devices:
       name: Alexa Devices
-      description: Select all Alexa devices you want to announce on.
+      description: Select one or more Echo devices.
       selector:
         entity:
           domain: media_player
           multiple: true
     announcement_type:
       name: Announcement Type
-      description: Choose if Alexa should play a sound or speak your custom text.
+      description: Choose if Alexa should speak text or play a library sound.
       default: "tts"
       selector:
         select:
           options:
             - label: "Voice Message (TTS)"
               value: "tts"
-            - label: "Play Sound File"
+            - label: "Amazon Library Sound"
               value: "sound"
     tts_message:
       name: Voice Message
-      description: The sentence Alexa will speak.
+      description: What Alexa will say (if Voice Message is selected).
       default: "There is someone at the door"
       selector:
         text:
-    sound_file:
-      name: Sound File Path
-      description: "Example: 'amzn_sfx_doorbell_chime_01' or a local media URL."
-      default: "amzn_sfx_doorbell_chime_01"
+    sound_uri:
+      name: Amazon Sound URI
+      description: "Copy the URI from the Amazon site. Example: soundbank://soundlibrary/animals/amzn_sfx_bear_groan_roar_01"
+      default: "soundbank://soundlibrary/home/amzn_sfx_doorbell_chime_01"
       selector:
         text:
     announcement_volume:
       name: Announcement Volume
-      description: The volume level (0 to 1). Set to 0 to keep current volume.
+      description: 0 to 1. Set to 0 to not change volume.
       default: 0.5
       selector:
         number:
@@ -61,14 +61,14 @@ blueprint:
           max: 30
           unit_of_measurement: s
 
-# This section maps the inputs to variables so they work inside templates {{ }}
 variables:
-  v_volume: !input announcement_volume
-  v_type: !input announcement_type
-  v_repeat: !input repeat_delay
+  # Map inputs to variables for use in templates
   v_devices: !input echo_devices
+  v_type: !input announcement_type
   v_message: !input tts_message
-  v_sound: !input sound_file
+  v_uri: !input sound_uri
+  v_volume: !input announcement_volume
+  v_repeat: !input repeat_delay
 
 mode: single
 
@@ -79,7 +79,7 @@ trigger:
     to: "on"
 
 action:
-  # 1. Set the volume if specified (greater than 0)
+  # 1. Set Volume
   - if:
       - condition: template
         value_template: "{{ v_volume | float > 0 }}"
@@ -90,54 +90,34 @@ action:
         data:
           volume_level: "{{ v_volume | float }}"
 
-  # 2. Perform the announcement (First time)
-  - choose:
-      - conditions:
-          - condition: template
-            value_template: "{{ v_type == 'tts' }}"
-        sequence:
-          - service: notify.alexa_media
-            data:
-              target: "{{ v_devices }}"
-              message: "{{ v_message }}"
-              data:
-                type: tts
-      - conditions:
-          - condition: template
-            value_template: "{{ v_type == 'sound' }}"
-        sequence:
-          - service: media_player.play_media
-            target:
-              entity_id: "{{ v_devices }}"
-            data:
-              media_content_id: "{{ v_sound }}"
-              media_content_type: sound
+  # 2. Play Announcement (First time)
+  - service: notify.alexa_media
+    data:
+      target: "{{ v_devices }}"
+      data:
+        type: tts
+      message: >
+        {% if v_type == 'tts' %}
+          {{ v_message }}
+        {% else %}
+          <audio src='{{ v_uri }}'/>
+        {% endif %}
 
-  # 3. Handle the Repeat (If delay is greater than 0)
+  # 3. Handle Repeat
   - if:
       - condition: template
         value_template: "{{ v_repeat | int > 0 }}"
     then:
       - delay:
           seconds: "{{ v_repeat | int }}"
-      - choose:
-          - conditions:
-              - condition: template
-                value_template: "{{ v_type == 'tts' }}"
-            sequence:
-              - service: notify.alexa_media
-                data:
-                  target: "{{ v_devices }}"
-                  message: "{{ v_message }}"
-                  data:
-                    type: tts
-          - conditions:
-              - condition: template
-                value_template: "{{ v_type == 'sound' }}"
-            sequence:
-              - service: media_player.play_media
-                target:
-                  entity_id: "{{ v_devices }}"
-                data:
-                  media_content_id: "{{ v_sound }}"
-                  media_content_type: sound
+      - service: notify.alexa_media
+        data:
+          target: "{{ v_devices }}"
+          data:
+            type: tts
+          message: >
+            {% if v_type == 'tts' %}
+              {{ v_message }}
+            {% else %}
+              <audio src='{{ v_uri }}'/>
+            {% endif %}
