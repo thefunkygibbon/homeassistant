@@ -1,5 +1,5 @@
 blueprint:
-  name: "Modern Doorbell & Door Announcer (Fixed)"
+  name: "Modern Doorbell & Door Announcer v1.1"
   description: >
     Announce doorbell presses or door openings over Alexa. 
     Choose between a built-in sound or a custom voice message.
