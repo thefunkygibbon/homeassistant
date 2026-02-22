@@ -1,21 +1,23 @@
 blueprint:
-  name: "Alexa Doorbell Announcer (V1.3)"
+  name: "Alexa Doorbell Announcer (V1.4)"
   description: >
     Announce doorbell, door or any binary sensor events over Alexa. 
     Supports Alexa Sound Library or custom Voice Messages.
+    Now supports multiple input sensors (e.g., Front and Side doors) and multiple Alexa devices.
     
     Browse the full sound library here: https://developer.amazon.com/en-US/docs/alexa/custom-skills/ask-soundlibrary-reference.html
   domain: automation
   input:
-    trigger_sensor:
-      name: Doorbell or Door Sensor
-      description: The sensor that triggers the announcement (Doorbell or Contact).
+    trigger_sensors:
+      name: Doorbell or Door Sensors
+      description: Select one or more sensors. If ANY of these are triggered, Alexa will announce it.
       selector:
         entity:
           domain: binary_sensor
+          multiple: true
     echo_devices:
       name: Alexa Devices
-      description: Select one or more Echo devices.
+      description: Select one or more Echo devices to play the announcement.
       selector:
         entity:
           domain: media_player
@@ -60,13 +62,13 @@ blueprint:
       name: Custom Amazon Sound URI
       description: >
         Only used if 'Custom' is selected above. 
-        Get URIs here: https://developer.amazon.com/en-US/docs/alexa/custom-skills/ask-soundlibrary-reference.html
+        Example: soundbank://soundlibrary/animals/amzn_sfx_bear_groan_roar_01
       default: "soundbank://soundlibrary/animals/amzn_sfx_bear_groan_roar_01"
       selector:
         text:
     announcement_volume:
       name: Announcement Volume
-      description: 0 to 1. Set to 0 to not change volume.
+      description: 0 to 1. Set to 0 to keep the speaker's current volume.
       default: 0.5
       selector:
         number:
@@ -97,12 +99,12 @@ mode: single
 
 trigger:
   - platform: state
-    entity_id: !input trigger_sensor
+    entity_id: !input trigger_sensors
     from: "off"
     to: "on"
 
 action:
-  # 1. Set Volume
+  # 1. Set Volume (if volume > 0)
   - if:
       - condition: template
         value_template: "{{ v_volume | float > 0 }}"
@@ -130,7 +132,7 @@ action:
           {% endif %}
         {% endif %}
 
-  # 3. Handle Repeat
+  # 3. Handle Repeat (if repeat_delay > 0)
   - if:
       - condition: template
         value_template: "{{ v_repeat | int > 0 }}"
