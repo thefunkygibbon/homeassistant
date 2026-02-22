@@ -1,9 +1,9 @@
 blueprint:
-  name: AI Event Summary - thefunkygibbon edit (v1.6.3 - Memory & Safe Clean)
+  name: AI Event Summary - thefunkygibbon edit (v1.7)
   author: valentinfrlch (Refined by thefunkygibbon)
   homeassistant:
     min_version: 2024.10.0
-  description: 'AI-powered summaries. RESTORED: v1.6.0 logic + Memory + Safe Unique Paths + Optional Cleanup.'
+  description: 'AI-powered summaries. Fixed by thefunkygibbon'
   domain: automation
   input:
     # --- TRIGGER SETTINGS ---
