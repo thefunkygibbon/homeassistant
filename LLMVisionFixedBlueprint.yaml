@@ -1,9 +1,9 @@
 blueprint:
-  name: AI Event Summary - thefunkygibbon edit (v1.7)
+  name: AI Event Summary (v1.8 - Enhanced GitHub Version)
   author: valentinfrlch (Refined by thefunkygibbon)
   homeassistant:
     min_version: 2024.10.0
-  description: 'AI-powered summaries. Fixed by thefunkygibbon'
+  description: 'AI-powered summaries. Based on v1.6.0 GitHub code. Enhanced with Cooldown, Memory, Safe Unique Paths, and Optional Cleanup.'
   domain: automation
   input:
     # --- TRIGGER SETTINGS ---
@@ -28,6 +28,15 @@ blueprint:
           multiple: true
           filter:
             - domain: [binary_sensor]
+            
+    # --- COOLDOWN SETTINGS ---
+    cooldown:
+      name: Cooldown
+      description: "Minimum time to wait before the automation can trigger again."
+      default:
+        minutes: 2
+      selector:
+        duration: {}
     
     # --- AI SETTINGS ---
     provider:
@@ -110,8 +119,9 @@ variables:
   auto_cleanup: !input auto_cleanup
   cleanup_delay: !input cleanup_delay
   use_memory: !input use_memory
+  cooldown: !input cooldown
   
-  # Camera Logic (The v1.6.0 Version)
+  # Camera Logic (The original GitHub version)
   camera_entity: >-
     {% if trigger is defined and motion_sensors_list and trigger.entity_id in motion_sensors_list %}
       {% set idx = motion_sensors_list.index(trigger.entity_id) %}
@@ -131,7 +141,7 @@ variables:
   
   notification_tag: "llm_event_{{ camera_name_clean }}"
   
-  # Device Entity Mapper (v1.6.0 Logic)
+  # Device Entity Mapper (The original GitHub version)
   device_entities: >-
     {% set ns = namespace(devices=[]) %}
     {% for dev in notify_devices %}
@@ -152,6 +162,19 @@ trigger:
 - platform: state
   entity_id: !input motion_sensors
   to: 'on'
+
+# --- THE COOLDOWN LOGIC ---
+condition:
+  - condition: template
+    value_template: >-
+      {% set dt = state_attr(this.entity_id, 'last_triggered') %}
+      {% if dt %}
+        {% set d = cooldown %}
+        {% set total_seconds = (d.days | default(0) * 86400) + (d.hours | default(0) * 3600) + (d.minutes | default(0) * 60) + (d.seconds | default(0)) %}
+        {{ (now() - dt).total_seconds() >= total_seconds }}
+      {% else %}
+        true
+      {% endif %}
 
 action:
   # 1. Take Snapshot
@@ -179,7 +202,7 @@ action:
               clickAction: "{{ snapshot_url }}"
               url: "{{ snapshot_url }}"
 
-  # 3. Stream Analyzer (Memory Restored)
+  # 3. Stream Analyzer (Original Logic + Memory)
   - alias: Analyze event
     action: llmvision.stream_analyzer
     data:
@@ -187,7 +210,7 @@ action:
       provider: !input provider
       model: !input model
       message: !input message
-      use_memory: "{{ use_memory }}" # Memory parameter restored here
+      use_memory: "{{ use_memory }}"
       duration: !input duration
       max_frames: !input max_frames
       store_in_timeline: !input store_in_timeline
