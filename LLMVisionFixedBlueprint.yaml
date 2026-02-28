@@ -1,9 +1,9 @@
 blueprint:
-  name: AI Event Summary (v1.8 - Enhanced GitHub Version)
-  author: valentinfrlch (Refined by thefunkygibbon)
+  name: AI Event Summary (v1.8.0 - Scheduled AI & Images)
+  author: valentinfrlch (Refined by Gemini)
   homeassistant:
     min_version: 2024.10.0
-  description: 'AI-powered summaries. Based on v1.6.0 GitHub code. Enhanced with Cooldown, Memory, Safe Unique Paths, and Optional Cleanup.'
+  description: 'AI-powered summaries. Enhanced with Cooldown, Memory, Safe Unique Paths, Auto-Cleanup, and Time-Based Schedules for both AI analysis and Image delivery.'
   domain: automation
   input:
     # --- TRIGGER SETTINGS ---
@@ -84,6 +84,41 @@ blueprint:
       selector:
         boolean: {}
 
+    # --- SCHEDULE SETTINGS ---
+    ai_schedule_enabled:
+      name: Enable AI Schedule
+      description: "If enabled, AI will ONLY run between the start/end times below. Outside these hours, a standard 'Motion Detected' notification is sent instead."
+      default: false
+      selector:
+        boolean: {}
+    ai_schedule_start:
+      name: AI Allowed Start Time
+      default: "00:00:00"
+      selector:
+        time: {}
+    ai_schedule_end:
+      name: AI Allowed End Time
+      default: "23:59:59"
+      selector:
+        time: {}
+
+    image_schedule_enabled:
+      name: Enable Image Schedule
+      description: "If enabled, images will ONLY be attached to notifications between the start/end times below."
+      default: false
+      selector:
+        boolean: {}
+    image_schedule_start:
+      name: Image Allowed Start Time
+      default: "00:00:00"
+      selector:
+        time: {}
+    image_schedule_end:
+      name: Image Allowed End Time
+      default: "23:59:59"
+      selector:
+        time: {}
+
     # --- NOTIFICATION SETTINGS ---
     notify_device:
       name: Notify Device
@@ -121,7 +156,44 @@ variables:
   use_memory: !input use_memory
   cooldown: !input cooldown
   
-  # Camera Logic (The original GitHub version)
+  ai_schedule_enabled: !input ai_schedule_enabled
+  ai_schedule_start: !input ai_schedule_start
+  ai_schedule_end: !input ai_schedule_end
+  
+  image_schedule_enabled: !input image_schedule_enabled
+  image_schedule_start: !input image_schedule_start
+  image_schedule_end: !input image_schedule_end
+
+  # Time Evaluation Logic
+  run_ai: >-
+    {% if ai_schedule_enabled %}
+      {% set now_time = now() %}
+      {% set start_time = today_at(ai_schedule_start) %}
+      {% set end_time = today_at(ai_schedule_end) %}
+      {% if start_time < end_time %}
+        {{ start_time <= now_time <= end_time }}
+      {% else %}
+        {{ now_time >= start_time or now_time <= end_time }}
+      {% endif %}
+    {% else %}
+      true
+    {% endif %}
+
+  send_image: >-
+    {% if image_schedule_enabled %}
+      {% set now_time = now() %}
+      {% set start_time = today_at(image_schedule_start) %}
+      {% set end_time = today_at(image_schedule_end) %}
+      {% if start_time < end_time %}
+        {{ start_time <= now_time <= end_time }}
+      {% else %}
+        {{ now_time >= start_time or now_time <= end_time }}
+      {% endif %}
+    {% else %}
+      true
+    {% endif %}
+
+  # Camera Logic
   camera_entity: >-
     {% if trigger is defined and motion_sensors_list and trigger.entity_id in motion_sensors_list %}
       {% set idx = motion_sensors_list.index(trigger.entity_id) %}
@@ -141,7 +213,7 @@ variables:
   
   notification_tag: "llm_event_{{ camera_name_clean }}"
   
-  # Device Entity Mapper (The original GitHub version)
+  # Device Entity Mapper
   device_entities: >-
     {% set ns = namespace(devices=[]) %}
     {% for dev in notify_devices %}
@@ -177,73 +249,139 @@ condition:
       {% endif %}
 
 action:
-  # 1. Take Snapshot
-  - action: camera.snapshot
-    target:
-      entity_id: "{{ camera_entity }}"
-    data:
-      filename: "{{ snapshot_file }}"
-
-  # 2. Initial Notification
-  - repeat:
-      for_each: "{{ device_entities }}"
-      sequence:
-        - action: "notify.{{ repeat.item }}"
-          data:
-            title: "Motion: {{ camera_name_clean | capitalize }}"
-            message: "Analyzing..."
-            data:
-              tag: "{{ notification_tag }}"
-              image: "{{ snapshot_url }}"
-              attachment:
-                url: "{{ snapshot_url }}"
-                content-type: jpeg
-                hide-thumbnail: false
-              clickAction: "{{ snapshot_url }}"
-              url: "{{ snapshot_url }}"
-
-  # 3. Stream Analyzer (Original Logic + Memory)
-  - alias: Analyze event
-    action: llmvision.stream_analyzer
-    data:
-      image_entity: ["{{ camera_entity }}"]
-      provider: !input provider
-      model: !input model
-      message: !input message
-      use_memory: "{{ use_memory }}"
-      duration: !input duration
-      max_frames: !input max_frames
-      store_in_timeline: !input store_in_timeline
-      generate_title: !input store_in_timeline
-      expose_images: true
-    response_variable: response
-
-  # 4. Final Notification
-  - repeat:
-      for_each: "{{ device_entities }}"
-      sequence:
-        - action: "notify.{{ repeat.item }}"
-          data:
-            title: "{{ response.title if response.title else 'AI Analysis' }}"
-            message: "{{ response.response_text }}"
-            data:
-              tag: "{{ notification_tag }}"
-              image: "{{ snapshot_url }}"
-              attachment:
-                url: "{{ snapshot_url }}"
-                content-type: jpeg
-                hide-thumbnail: false
-              clickAction: "{{ snapshot_url }}"
-              url: "{{ snapshot_url }}"
-              actions:
-                - action: "URI"
-                  title: "View Snapshot"
-                  uri: "{{ snapshot_url }}"
-
-  # 5. Optional Cleanup
+  # 1. Take Snapshot (Only if we actually need it for AI or Image delivery)
   - if:
       - condition: template
-        value_template: "{{ auto_cleanup }}"
+        value_template: "{{ run_ai or send_image }}"
+    then:
+      - action: camera.snapshot
+        target:
+          entity_id: "{{ camera_entity }}"
+        data:
+          filename: "{{ snapshot_file }}"
+
+  # 2. Main Logic Split based on AI Schedule
+  - if:
+      - condition: template
+        value_template: "{{ run_ai }}"
+    then:
+      # ========================================
+      # PATH A: AI ANALYSIS IS ENABLED
+      # ========================================
+      
+      # Step A1: Initial Notification
+      - repeat:
+          for_each: "{{ device_entities }}"
+          sequence:
+            - if:
+                - condition: template
+                  value_template: "{{ send_image }}"
+              then:
+                - action: "notify.{{ repeat.item }}"
+                  data:
+                    title: "Motion: {{ camera_name_clean | capitalize }}"
+                    message: "Analyzing..."
+                    data:
+                      tag: "{{ notification_tag }}"
+                      image: "{{ snapshot_url }}"
+                      attachment:
+                        url: "{{ snapshot_url }}"
+                        content-type: jpeg
+                        hide-thumbnail: false
+                      clickAction: "{{ snapshot_url }}"
+                      url: "{{ snapshot_url }}"
+              else:
+                - action: "notify.{{ repeat.item }}"
+                  data:
+                    title: "Motion: {{ camera_name_clean | capitalize }}"
+                    message: "Analyzing..."
+                    data:
+                      tag: "{{ notification_tag }}"
+
+      # Step A2: Stream Analyzer
+      - alias: Analyze event
+        action: llmvision.stream_analyzer
+        data:
+          image_entity: ["{{ camera_entity }}"]
+          provider: !input provider
+          model: !input model
+          message: !input message
+          use_memory: "{{ use_memory }}"
+          duration: !input duration
+          max_frames: !input max_frames
+          store_in_timeline: !input store_in_timeline
+          generate_title: !input store_in_timeline
+          expose_images: true
+        response_variable: response
+
+      # Step A3: Final Notification
+      - repeat:
+          for_each: "{{ device_entities }}"
+          sequence:
+            - if:
+                - condition: template
+                  value_template: "{{ send_image }}"
+              then:
+                - action: "notify.{{ repeat.item }}"
+                  data:
+                    title: "{{ response.title if response.title else 'AI Analysis' }}"
+                    message: "{{ response.response_text }}"
+                    data:
+                      tag: "{{ notification_tag }}"
+                      image: "{{ snapshot_url }}"
+                      attachment:
+                        url: "{{ snapshot_url }}"
+                        content-type: jpeg
+                        hide-thumbnail: false
+                      clickAction: "{{ snapshot_url }}"
+                      url: "{{ snapshot_url }}"
+                      actions:
+                        - action: "URI"
+                          title: "View Snapshot"
+                          uri: "{{ snapshot_url }}"
+              else:
+                - action: "notify.{{ repeat.item }}"
+                  data:
+                    title: "{{ response.title if response.title else 'AI Analysis' }}"
+                    message: "{{ response.response_text }}"
+                    data:
+                      tag: "{{ notification_tag }}"
+    else:
+      # ========================================
+      # PATH B: AI ANALYSIS IS DISABLED (Outside Hours)
+      # ========================================
+      - repeat:
+          for_each: "{{ device_entities }}"
+          sequence:
+            - if:
+                - condition: template
+                  value_template: "{{ send_image }}"
+              then:
+                - action: "notify.{{ repeat.item }}"
+                  data:
+                    title: "Motion: {{ camera_name_clean | capitalize }}"
+                    message: "Motion detected."
+                    data:
+                      tag: "{{ notification_tag }}"
+                      image: "{{ snapshot_url }}"
+                      attachment:
+                        url: "{{ snapshot_url }}"
+                        content-type: jpeg
+                        hide-thumbnail: false
+                      clickAction: "{{ snapshot_url }}"
+                      url: "{{ snapshot_url }}"
+              else:
+                - action: "notify.{{ repeat.item }}"
+                  data:
+                    title: "Motion: {{ camera_name_clean | capitalize }}"
+                    message: "Motion detected."
+                    data:
+                      tag: "{{ notification_tag }}"
+
+  # 3. Optional Cleanup
+  - if:
+      - condition: template
+        value_template: "{{ auto_cleanup and (run_ai or send_image) }}"
     then:
       - delay:
           minutes: "{{ cleanup_delay }}"
@@ -251,3 +389,4 @@ action:
         action: shell_command.remove_llm_temp_file
         data:
           file: "{{ snapshot_file }}"
+
