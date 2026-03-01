@@ -1,9 +1,9 @@
 blueprint:
-  name: AI Event Summary (v1.8.0 - Scheduled AI & Images)
-  author: valentinfrlch (Refined by Gemini)
+  name: AI Event Summary (v1.8.1 - Presence Aware)
+  author: valentinfrlch (Refined by thefunkygibbon)
   homeassistant:
     min_version: 2024.10.0
-  description: 'AI-powered summaries. Enhanced with Cooldown, Memory, Safe Unique Paths, Auto-Cleanup, and Time-Based Schedules for both AI analysis and Image delivery.'
+  description: 'AI-powered summaries. Enhanced with Cooldown, Memory, Safe Unique Paths, Auto-Cleanup, Schedules, and optional Presence Detection.'
   domain: automation
   input:
     # --- TRIGGER SETTINGS ---
@@ -29,6 +29,15 @@ blueprint:
           filter:
             - domain: [binary_sensor]
             
+    # --- PRESENCE SETTINGS ---
+    presence_sensor:
+      name: Presence Sensor (Optional)
+      description: "Only run this automation if this entity is NOT 'home'. Leave empty to always run."
+      default: []
+      selector:
+        entity:
+          multiple: false
+
     # --- COOLDOWN SETTINGS ---
     cooldown:
       name: Cooldown
@@ -87,7 +96,7 @@ blueprint:
     # --- SCHEDULE SETTINGS ---
     ai_schedule_enabled:
       name: Enable AI Schedule
-      description: "If enabled, AI will ONLY run between the start/end times below. Outside these hours, a standard 'Motion Detected' notification is sent instead."
+      description: "If enabled, AI will ONLY run between the start/end times below."
       default: false
       selector:
         boolean: {}
@@ -155,6 +164,7 @@ variables:
   cleanup_delay: !input cleanup_delay
   use_memory: !input use_memory
   cooldown: !input cooldown
+  presence_sensor: !input presence_sensor
   
   ai_schedule_enabled: !input ai_schedule_enabled
   ai_schedule_start: !input ai_schedule_start
@@ -235,8 +245,10 @@ trigger:
   entity_id: !input motion_sensors
   to: 'on'
 
-# --- THE COOLDOWN LOGIC ---
+# --- THE CONDITION BLOCK ---
+# This acts as the gatekeeper for the entire automation.
 condition:
+  # 1. Cooldown Check
   - condition: template
     value_template: >-
       {% set dt = state_attr(this.entity_id, 'last_triggered') %}
@@ -247,9 +259,17 @@ condition:
       {% else %}
         true
       {% endif %}
+  # 2. Presence Check (Only blocks if sensor is set and state is 'home')
+  - condition: template
+    value_template: >-
+      {% if presence_sensor %}
+        {{ states(presence_sensor) != 'home' }}
+      {% else %}
+        true
+      {% endif %}
 
 action:
-  # 1. Take Snapshot (Only if we actually need it for AI or Image delivery)
+  # 1. Take Snapshot
   - if:
       - condition: template
         value_template: "{{ run_ai or send_image }}"
@@ -260,16 +280,12 @@ action:
         data:
           filename: "{{ snapshot_file }}"
 
-  # 2. Main Logic Split based on AI Schedule
+  # 2. Main Logic Split
   - if:
       - condition: template
         value_template: "{{ run_ai }}"
     then:
-      # ========================================
-      # PATH A: AI ANALYSIS IS ENABLED
-      # ========================================
-      
-      # Step A1: Initial Notification
+      # AI ENABLED PATH
       - repeat:
           for_each: "{{ device_entities }}"
           sequence:
@@ -298,7 +314,6 @@ action:
                     data:
                       tag: "{{ notification_tag }}"
 
-      # Step A2: Stream Analyzer
       - alias: Analyze event
         action: llmvision.stream_analyzer
         data:
@@ -314,7 +329,6 @@ action:
           expose_images: true
         response_variable: response
 
-      # Step A3: Final Notification
       - repeat:
           for_each: "{{ device_entities }}"
           sequence:
@@ -347,9 +361,7 @@ action:
                     data:
                       tag: "{{ notification_tag }}"
     else:
-      # ========================================
-      # PATH B: AI ANALYSIS IS DISABLED (Outside Hours)
-      # ========================================
+      # AI DISABLED PATH
       - repeat:
           for_each: "{{ device_entities }}"
           sequence:
@@ -389,4 +401,3 @@ action:
         action: shell_command.remove_llm_temp_file
         data:
           file: "{{ snapshot_file }}"
-
