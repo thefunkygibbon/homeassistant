@@ -1,159 +1,223 @@
 blueprint:
-  name: AI Event Summary (v1.8.1 - Presence Aware)
-  author: valentinfrlch (Refined by thefunkygibbon)
+  name: AI Event Summary (v1.9.0 - Flexible Presence & UI)
+  author: valentinfrlch (Refined by Gemini)
   homeassistant:
     min_version: 2024.10.0
-  description: 'AI-powered summaries. Enhanced with Cooldown, Memory, Safe Unique Paths, Auto-Cleanup, Schedules, and optional Presence Detection.'
+  description: 'AI-powered summaries. Enhanced with Cooldown, Memory, Auto-Cleanup, granular Schedules, independent Presence Detection, and Collapsible UI Sections.'
   domain: automation
+  
   input:
-    # --- TRIGGER SETTINGS ---
-    camera_entities:
-      name: Camera Entities
-      default: []
-      selector:
-        entity:
-          multiple: true
-          filter:
-            - domain: [camera]
-    trigger_state:
-      name: Trigger State
-      default: recording
-      selector:
-        text: {}
-    motion_sensors:
-      name: Motion Sensor
-      default: []
-      selector:
-        entity:
-          multiple: true
-          filter:
-            - domain: [binary_sensor]
-            
-    # --- PRESENCE SETTINGS ---
-    presence_sensor:
-      name: Presence Sensor (Optional)
-      description: "Only run this automation if this entity is NOT 'home'. Leave empty to always run."
-      default: []
-      selector:
-        entity:
-          multiple: false
+    # ==========================================
+    # 1. TRIGGERS & SENSORS
+    # ==========================================
+    section_trigger:
+      name: 🎯 Triggers & Sensors
+      description: "Select the cameras and motion sensors that trigger this automation."
+      icon: mdi:cctv
+      input:
+        camera_entities:
+          name: Camera Entities
+          default: []
+          selector:
+            entity:
+              multiple: true
+              filter:
+                - domain: [camera]
+        trigger_state:
+          name: Trigger State
+          default: recording
+          selector:
+            text: {}
+        motion_sensors:
+          name: Motion Sensor
+          default: []
+          selector:
+            entity:
+              multiple: true
+              filter:
+                - domain: [binary_sensor]
 
-    # --- COOLDOWN SETTINGS ---
-    cooldown:
-      name: Cooldown
-      description: "Minimum time to wait before the automation can trigger again."
-      default:
-        minutes: 2
-      selector:
-        duration: {}
-    
-    # --- AI SETTINGS ---
-    provider:
-      name: Provider
-      selector:
-        config_entry:
-          integration: llmvision
-    model:
-      name: Model
-      selector:
-        text: {}
-    message:
-      name: Prompt
-      default: 'Summarize the events based on a series of images captured at short intervals. Focus only on moving subjects. Provide a clear and concise account.'
-      selector:
-        text:
-          multiline: true
-    use_memory:
-      name: Use Memory
-      description: "Enable if your AI provider supports memory/conversation history."
-      default: false
-      selector:
-        boolean: {}
-    duration:
-      name: Duration
-      default: 5
-      selector:
-        number:
-          min: 1
-          max: 60
-          step: 1
-          mode: slider
-    max_frames:
-      name: Max Frames
-      default: 3
-      selector:
-        number:
-          min: 1
-          max: 60
-          step: 1
-          mode: slider
-    store_in_timeline:
-      name: Store in Timeline
-      default: true
-      selector:
-        boolean: {}
+    # ==========================================
+    # 2. GLOBAL CONDITIONS
+    # ==========================================
+    section_global:
+      name: ⏱️ Global Conditions
+      description: "Settings that act as gatekeepers for the ENTIRE automation."
+      icon: mdi:gate
+      input:
+        cooldown:
+          name: Cooldown
+          description: "Minimum time to wait before the automation can trigger again."
+          default:
+            minutes: 2
+          selector:
+            duration: {}
+        global_presence_sensor:
+          name: Global Presence Sensor (Optional)
+          description: "Stop the ENTIRE automation from running unless this entity is in the target state."
+          default: []
+          selector:
+            entity:
+              multiple: false
+        global_presence_state:
+          name: Global Target State
+          description: "The state the sensor above must be in (e.g., 'not_home')."
+          default: "not_home"
+          selector:
+            text: {}
 
-    # --- SCHEDULE SETTINGS ---
-    ai_schedule_enabled:
-      name: Enable AI Schedule
-      description: "If enabled, AI will ONLY run between the start/end times below."
-      default: false
-      selector:
-        boolean: {}
-    ai_schedule_start:
-      name: AI Allowed Start Time
-      default: "00:00:00"
-      selector:
-        time: {}
-    ai_schedule_end:
-      name: AI Allowed End Time
-      default: "23:59:59"
-      selector:
-        time: {}
+    # ==========================================
+    # 3. AI ANALYSIS CONFIGURATION
+    # ==========================================
+    section_ai:
+      name: 🧠 AI Analysis Settings
+      description: "Configure the LLM and specific schedules/presence for when AI should run."
+      icon: mdi:brain
+      input:
+        provider:
+          name: Provider
+          selector:
+            config_entry:
+              integration: llmvision
+        model:
+          name: Model
+          selector:
+            text: {}
+        message:
+          name: Prompt
+          default: 'Summarize the events based on a series of images captured at short intervals. Focus only on moving subjects. Provide a clear and concise account.'
+          selector:
+            text:
+              multiline: true
+        use_memory:
+          name: Use Memory
+          description: "Enable if your AI provider supports memory/conversation history."
+          default: false
+          selector:
+            boolean: {}
+        duration:
+          name: Duration
+          default: 5
+          selector:
+            number:
+              min: 1
+              max: 60
+              step: 1
+              mode: slider
+        max_frames:
+          name: Max Frames
+          default: 3
+          selector:
+            number:
+              min: 1
+              max: 60
+              step: 1
+              mode: slider
+        store_in_timeline:
+          name: Store in Timeline
+          default: true
+          selector:
+            boolean: {}
+        
+        # AI Specific Conditions
+        ai_schedule_enabled:
+          name: Enable AI Time Schedule
+          default: false
+          selector:
+            boolean: {}
+        ai_schedule_start:
+          name: AI Allowed Start Time
+          default: "00:00:00"
+          selector:
+            time: {}
+        ai_schedule_end:
+          name: AI Allowed End Time
+          default: "23:59:59"
+          selector:
+            time: {}
+        ai_presence_sensor:
+          name: AI Presence Sensor (Optional)
+          description: "Only run AI when this entity matches the target state. (If blank, AI ignores presence)."
+          default: []
+          selector:
+            entity:
+              multiple: false
+        ai_presence_state:
+          name: AI Target State
+          description: "The state the AI sensor above must be in (e.g., 'not_home')."
+          default: "not_home"
+          selector:
+            text: {}
 
-    image_schedule_enabled:
-      name: Enable Image Schedule
-      description: "If enabled, images will ONLY be attached to notifications between the start/end times below."
-      default: false
-      selector:
-        boolean: {}
-    image_schedule_start:
-      name: Image Allowed Start Time
-      default: "00:00:00"
-      selector:
-        time: {}
-    image_schedule_end:
-      name: Image Allowed End Time
-      default: "23:59:59"
-      selector:
-        time: {}
+    # ==========================================
+    # 4. NOTIFICATIONS & IMAGES
+    # ==========================================
+    section_image:
+      name: 🖼️ Notifications & Images
+      description: "Configure your devices and the conditions for attaching images."
+      icon: mdi:image
+      input:
+        notify_device:
+          name: Notify Device
+          default: []
+          selector:
+            device:
+              multiple: true
+              filter:
+                - integration: mobile_app
+        
+        # Image Specific Conditions
+        image_schedule_enabled:
+          name: Enable Image Time Schedule
+          default: false
+          selector:
+            boolean: {}
+        image_schedule_start:
+          name: Image Allowed Start Time
+          default: "00:00:00"
+          selector:
+            time: {}
+        image_schedule_end:
+          name: Image Allowed End Time
+          default: "23:59:59"
+          selector:
+            time: {}
+        image_presence_sensor:
+          name: Image Presence Sensor (Optional)
+          description: "Only attach images when this entity matches the target state. (If blank, always attach)."
+          default: []
+          selector:
+            entity:
+              multiple: false
+        image_presence_state:
+          name: Image Target State
+          description: "The state the Image sensor above must be in (e.g., 'not_home')."
+          default: "not_home"
+          selector:
+            text: {}
 
-    # --- NOTIFICATION SETTINGS ---
-    notify_device:
-      name: Notify Device
-      default: []
-      selector:
-        device:
-          multiple: true
-          filter:
-            - integration: mobile_app
-    
-    # --- CLEANUP SETTINGS ---
-    auto_cleanup:
-      name: Enable Auto-Cleanup
-      description: "Delete the snapshot from /config/www/snapshots after the delay below."
-      default: false
-      selector:
-        boolean: {}
-    cleanup_delay:
-      name: Cleanup Delay (Minutes)
-      default: 10
-      selector:
-        number:
-          min: 1
-          max: 1440
-          unit_of_measurement: min
-          mode: box
+    # ==========================================
+    # 5. CLEANUP SETTINGS
+    # ==========================================
+    section_cleanup:
+      name: 🧹 File Auto-Cleanup
+      description: "Automatically delete snapshot images from your system after a delay."
+      icon: mdi:broom
+      input:
+        auto_cleanup:
+          name: Enable Auto-Cleanup
+          default: false
+          selector:
+            boolean: {}
+        cleanup_delay:
+          name: Cleanup Delay (Minutes)
+          default: 10
+          selector:
+            number:
+              min: 1
+              max: 1440
+              unit_of_measurement: min
+              mode: box
 
 variables:
   # Base Inputs
@@ -164,44 +228,61 @@ variables:
   cleanup_delay: !input cleanup_delay
   use_memory: !input use_memory
   cooldown: !input cooldown
-  presence_sensor: !input presence_sensor
   
+  # Presence Variables
+  global_presence_sensor: !input global_presence_sensor
+  global_presence_state: !input global_presence_state
+  ai_presence_sensor: !input ai_presence_sensor
+  ai_presence_state: !input ai_presence_state
+  image_presence_sensor: !input image_presence_sensor
+  image_presence_state: !input image_presence_state
+  
+  # Schedule Variables
   ai_schedule_enabled: !input ai_schedule_enabled
   ai_schedule_start: !input ai_schedule_start
   ai_schedule_end: !input ai_schedule_end
-  
   image_schedule_enabled: !input image_schedule_enabled
   image_schedule_start: !input image_schedule_start
   image_schedule_end: !input image_schedule_end
 
-  # Time Evaluation Logic
+  # --- DYNAMIC EVALUATION LOGIC ---
+  # AI Execution Gate
   run_ai: >-
+    {% set schedule_ok = true %}
     {% if ai_schedule_enabled %}
       {% set now_time = now() %}
       {% set start_time = today_at(ai_schedule_start) %}
       {% set end_time = today_at(ai_schedule_end) %}
       {% if start_time < end_time %}
-        {{ start_time <= now_time <= end_time }}
+        {% set schedule_ok = start_time <= now_time <= end_time %}
       {% else %}
-        {{ now_time >= start_time or now_time <= end_time }}
+        {% set schedule_ok = now_time >= start_time or now_time <= end_time %}
       {% endif %}
-    {% else %}
-      true
     {% endif %}
+    {% set presence_ok = true %}
+    {% if ai_presence_sensor %}
+      {% set presence_ok = states(ai_presence_sensor) == ai_presence_state %}
+    {% endif %}
+    {{ schedule_ok and presence_ok }}
 
+  # Image Attachment Gate
   send_image: >-
+    {% set schedule_ok = true %}
     {% if image_schedule_enabled %}
       {% set now_time = now() %}
       {% set start_time = today_at(image_schedule_start) %}
       {% set end_time = today_at(image_schedule_end) %}
       {% if start_time < end_time %}
-        {{ start_time <= now_time <= end_time }}
+        {% set schedule_ok = start_time <= now_time <= end_time %}
       {% else %}
-        {{ now_time >= start_time or now_time <= end_time }}
+        {% set schedule_ok = now_time >= start_time or now_time <= end_time %}
       {% endif %}
-    {% else %}
-      true
     {% endif %}
+    {% set presence_ok = true %}
+    {% if image_presence_sensor %}
+      {% set presence_ok = states(image_presence_sensor) == image_presence_state %}
+    {% endif %}
+    {{ schedule_ok and presence_ok }}
 
   # Camera Logic
   camera_entity: >-
@@ -245,8 +326,8 @@ trigger:
   entity_id: !input motion_sensors
   to: 'on'
 
-# --- THE CONDITION BLOCK ---
-# This acts as the gatekeeper for the entire automation.
+# --- THE GLOBAL CONDITION BLOCK ---
+# If these fail, the automation stops entirely and does nothing.
 condition:
   # 1. Cooldown Check
   - condition: template
@@ -259,11 +340,11 @@ condition:
       {% else %}
         true
       {% endif %}
-  # 2. Presence Check (Only blocks if sensor is set and state is 'home')
+  # 2. Global Presence Check (Only blocks if sensor is assigned)
   - condition: template
     value_template: >-
-      {% if presence_sensor %}
-        {{ states(presence_sensor) != 'home' }}
+      {% if global_presence_sensor %}
+        {{ states(global_presence_sensor) == global_presence_state }}
       {% else %}
         true
       {% endif %}
@@ -285,7 +366,9 @@ action:
       - condition: template
         value_template: "{{ run_ai }}"
     then:
-      # AI ENABLED PATH
+      # ==================================
+      # PATH A: AI IS ENABLED
+      # ==================================
       - repeat:
           for_each: "{{ device_entities }}"
           sequence:
@@ -361,7 +444,9 @@ action:
                     data:
                       tag: "{{ notification_tag }}"
     else:
-      # AI DISABLED PATH
+      # ==================================
+      # PATH B: AI IS DISABLED
+      # ==================================
       - repeat:
           for_each: "{{ device_entities }}"
           sequence:
