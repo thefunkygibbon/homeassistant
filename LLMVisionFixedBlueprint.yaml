@@ -1,9 +1,9 @@
 blueprint:
-  name: AI Event Summary (v1.9.0 - Flexible Presence & UI)
-  author: valentinfrlch (Refined by Gemini)
+  name: AI Event Summary (v1.10.0 - Priority & Custom Titles)
+  author: valentinfrlch (Refined/recreated by thefunkygibbon)
   homeassistant:
     min_version: 2024.10.0
-  description: 'AI-powered summaries. Enhanced with Cooldown, Memory, Auto-Cleanup, granular Schedules, independent Presence Detection, and Collapsible UI Sections.'
+  description: 'AI-powered summaries. Enhanced with Cooldown, Memory, Auto-Cleanup, Schedules, Presence Detection, Custom Titles, and High-Priority grouping for Android/iOS.'
   domain: automation
   
   input:
@@ -154,7 +154,7 @@ blueprint:
     # ==========================================
     section_image:
       name: 🖼️ Notifications & Images
-      description: "Configure your devices and the conditions for attaching images."
+      description: "Configure your devices, titles, priority, and conditions for attaching images."
       icon: mdi:image
       input:
         notify_device:
@@ -165,6 +165,18 @@ blueprint:
               multiple: true
               filter:
                 - integration: mobile_app
+        notification_title:
+          name: Custom Notification Title (Optional)
+          description: "Manually set the notification title. Leave blank to let the AI (or default camera name) generate the title."
+          default: ""
+          selector:
+            text: {}
+        high_priority:
+          name: High Priority & Grouping
+          description: "Android: Bypasses doze mode, forces top of list, adds 'Motion Alerts' channel, and groups alerts by camera. iOS: Sends as time-sensitive."
+          default: false
+          selector:
+            boolean: {}
         
         # Image Specific Conditions
         image_schedule_enabled:
@@ -228,6 +240,10 @@ variables:
   cleanup_delay: !input cleanup_delay
   use_memory: !input use_memory
   cooldown: !input cooldown
+  
+  # Notification Mods
+  notification_title: !input notification_title
+  high_priority: !input high_priority
   
   # Presence Variables
   global_presence_sensor: !input global_presence_sensor
@@ -378,10 +394,16 @@ action:
               then:
                 - action: "notify.{{ repeat.item }}"
                   data:
-                    title: "Motion: {{ camera_name_clean | capitalize }}"
+                    title: "{{ notification_title if notification_title | length > 0 else ('Motion: ' ~ camera_name_clean | capitalize) }}"
                     message: "Analyzing..."
                     data:
                       tag: "{{ notification_tag }}"
+                      group: "motion_{{ camera_name_clean }}"
+                      channel: "Motion Alerts"
+                      priority: "{{ 'high' if high_priority else 'default' }}"
+                      ttl: "{{ 0 if high_priority else 86400 }}"
+                      push:
+                        interruption-level: "{{ 'time-sensitive' if high_priority else 'active' }}"
                       image: "{{ snapshot_url }}"
                       attachment:
                         url: "{{ snapshot_url }}"
@@ -392,10 +414,16 @@ action:
               else:
                 - action: "notify.{{ repeat.item }}"
                   data:
-                    title: "Motion: {{ camera_name_clean | capitalize }}"
+                    title: "{{ notification_title if notification_title | length > 0 else ('Motion: ' ~ camera_name_clean | capitalize) }}"
                     message: "Analyzing..."
                     data:
                       tag: "{{ notification_tag }}"
+                      group: "motion_{{ camera_name_clean }}"
+                      channel: "Motion Alerts"
+                      priority: "{{ 'high' if high_priority else 'default' }}"
+                      ttl: "{{ 0 if high_priority else 86400 }}"
+                      push:
+                        interruption-level: "{{ 'time-sensitive' if high_priority else 'active' }}"
 
       - alias: Analyze event
         action: llmvision.stream_analyzer
@@ -421,10 +449,16 @@ action:
               then:
                 - action: "notify.{{ repeat.item }}"
                   data:
-                    title: "{{ response.title if response.title else 'AI Analysis' }}"
+                    title: "{{ notification_title if notification_title | length > 0 else (response.title if (response is defined and response.title) else 'AI Analysis') }}"
                     message: "{{ response.response_text }}"
                     data:
                       tag: "{{ notification_tag }}"
+                      group: "motion_{{ camera_name_clean }}"
+                      channel: "Motion Alerts"
+                      priority: "{{ 'high' if high_priority else 'default' }}"
+                      ttl: "{{ 0 if high_priority else 86400 }}"
+                      push:
+                        interruption-level: "{{ 'time-sensitive' if high_priority else 'active' }}"
                       image: "{{ snapshot_url }}"
                       attachment:
                         url: "{{ snapshot_url }}"
@@ -439,10 +473,16 @@ action:
               else:
                 - action: "notify.{{ repeat.item }}"
                   data:
-                    title: "{{ response.title if response.title else 'AI Analysis' }}"
+                    title: "{{ notification_title if notification_title | length > 0 else (response.title if (response is defined and response.title) else 'AI Analysis') }}"
                     message: "{{ response.response_text }}"
                     data:
                       tag: "{{ notification_tag }}"
+                      group: "motion_{{ camera_name_clean }}"
+                      channel: "Motion Alerts"
+                      priority: "{{ 'high' if high_priority else 'default' }}"
+                      ttl: "{{ 0 if high_priority else 86400 }}"
+                      push:
+                        interruption-level: "{{ 'time-sensitive' if high_priority else 'active' }}"
     else:
       # ==================================
       # PATH B: AI IS DISABLED
@@ -456,10 +496,16 @@ action:
               then:
                 - action: "notify.{{ repeat.item }}"
                   data:
-                    title: "Motion: {{ camera_name_clean | capitalize }}"
+                    title: "{{ notification_title if notification_title | length > 0 else ('Motion: ' ~ camera_name_clean | capitalize) }}"
                     message: "Motion detected."
                     data:
                       tag: "{{ notification_tag }}"
+                      group: "motion_{{ camera_name_clean }}"
+                      channel: "Motion Alerts"
+                      priority: "{{ 'high' if high_priority else 'default' }}"
+                      ttl: "{{ 0 if high_priority else 86400 }}"
+                      push:
+                        interruption-level: "{{ 'time-sensitive' if high_priority else 'active' }}"
                       image: "{{ snapshot_url }}"
                       attachment:
                         url: "{{ snapshot_url }}"
@@ -470,10 +516,16 @@ action:
               else:
                 - action: "notify.{{ repeat.item }}"
                   data:
-                    title: "Motion: {{ camera_name_clean | capitalize }}"
+                    title: "{{ notification_title if notification_title | length > 0 else ('Motion: ' ~ camera_name_clean | capitalize) }}"
                     message: "Motion detected."
                     data:
                       tag: "{{ notification_tag }}"
+                      group: "motion_{{ camera_name_clean }}"
+                      channel: "Motion Alerts"
+                      priority: "{{ 'high' if high_priority else 'default' }}"
+                      ttl: "{{ 0 if high_priority else 86400 }}"
+                      push:
+                        interruption-level: "{{ 'time-sensitive' if high_priority else 'active' }}"
 
   # 3. Optional Cleanup
   - if:
