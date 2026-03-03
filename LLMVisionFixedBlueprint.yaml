@@ -1,9 +1,9 @@
 blueprint:
-  name: AI Event Summary (v1.10.0 - Priority & Custom Titles)
-  author: valentinfrlch (Refined/recreated by thefunkygibbon)
+  name: AI Event Summary (v1.11.0 - True Priority & Grouping)
+  author: valentinfrlch (Refined by thefunkygibbon)
   homeassistant:
     min_version: 2024.10.0
-  description: 'AI-powered summaries. Enhanced with Cooldown, Memory, Auto-Cleanup, Schedules, Presence Detection, Custom Titles, and High-Priority grouping for Android/iOS.'
+  description: 'AI-powered summaries. Enhanced with Cooldown, Memory, Auto-Cleanup, Schedules, Presence Detection, Custom Titles, and True High-Priority grouping for Android/iOS.'
   domain: automation
   
   input:
@@ -171,9 +171,15 @@ blueprint:
           default: ""
           selector:
             text: {}
+        notification_group:
+          name: Notification Group Name
+          description: "IMPORTANT: Use the exact same name here across all your camera automations so they stack together on your phone."
+          default: "Security Cameras"
+          selector:
+            text: {}
         high_priority:
-          name: High Priority & Grouping
-          description: "Android: Bypasses doze mode, forces top of list, adds 'Motion Alerts' channel, and groups alerts by camera. iOS: Sends as time-sensitive."
+          name: High Priority Alert
+          description: "Forces Android to create a new, high-importance channel to bypass doze mode and sit at the top of the list. iOS sends as time-sensitive."
           default: false
           selector:
             boolean: {}
@@ -243,6 +249,7 @@ variables:
   
   # Notification Mods
   notification_title: !input notification_title
+  notification_group: !input notification_group
   high_priority: !input high_priority
   
   # Presence Variables
@@ -313,12 +320,13 @@ variables:
 
   camera_name_clean: "{{ camera_entity.replace('camera.', '').replace('.', '_') }}"
   
-  # SAFE UNIQUE PATHING
+  # SAFE UNIQUE PATHING & TAGGING
   unique_id: "{{ as_timestamp(now()) | int }}"
   snapshot_file: "/config/www/snapshots/{{ camera_name_clean }}_{{ unique_id }}.jpg"
   snapshot_url: "/local/snapshots/{{ camera_name_clean }}_{{ unique_id }}.jpg"
   
-  notification_tag: "llm_event_{{ camera_name_clean }}"
+  # This makes the tag unique per EVENT, allowing a history of notifications to stack
+  notification_tag: "llm_event_{{ camera_name_clean }}_{{ unique_id }}"
   
   # Device Entity Mapper
   device_entities: >-
@@ -398,8 +406,9 @@ action:
                     message: "Analyzing..."
                     data:
                       tag: "{{ notification_tag }}"
-                      group: "motion_{{ camera_name_clean }}"
-                      channel: "Motion Alerts"
+                      group: "{{ notification_group }}"
+                      channel: "{{ 'Motion_Alerts_High' if high_priority else 'Motion_Alerts' }}"
+                      importance: "{{ 'high' if high_priority else 'default' }}"
                       priority: "{{ 'high' if high_priority else 'default' }}"
                       ttl: "{{ 0 if high_priority else 86400 }}"
                       push:
@@ -418,8 +427,9 @@ action:
                     message: "Analyzing..."
                     data:
                       tag: "{{ notification_tag }}"
-                      group: "motion_{{ camera_name_clean }}"
-                      channel: "Motion Alerts"
+                      group: "{{ notification_group }}"
+                      channel: "{{ 'Motion_Alerts_High' if high_priority else 'Motion_Alerts' }}"
+                      importance: "{{ 'high' if high_priority else 'default' }}"
                       priority: "{{ 'high' if high_priority else 'default' }}"
                       ttl: "{{ 0 if high_priority else 86400 }}"
                       push:
@@ -453,8 +463,9 @@ action:
                     message: "{{ response.response_text }}"
                     data:
                       tag: "{{ notification_tag }}"
-                      group: "motion_{{ camera_name_clean }}"
-                      channel: "Motion Alerts"
+                      group: "{{ notification_group }}"
+                      channel: "{{ 'Motion_Alerts_High' if high_priority else 'Motion_Alerts' }}"
+                      importance: "{{ 'high' if high_priority else 'default' }}"
                       priority: "{{ 'high' if high_priority else 'default' }}"
                       ttl: "{{ 0 if high_priority else 86400 }}"
                       push:
@@ -477,8 +488,9 @@ action:
                     message: "{{ response.response_text }}"
                     data:
                       tag: "{{ notification_tag }}"
-                      group: "motion_{{ camera_name_clean }}"
-                      channel: "Motion Alerts"
+                      group: "{{ notification_group }}"
+                      channel: "{{ 'Motion_Alerts_High' if high_priority else 'Motion_Alerts' }}"
+                      importance: "{{ 'high' if high_priority else 'default' }}"
                       priority: "{{ 'high' if high_priority else 'default' }}"
                       ttl: "{{ 0 if high_priority else 86400 }}"
                       push:
@@ -500,8 +512,9 @@ action:
                     message: "Motion detected."
                     data:
                       tag: "{{ notification_tag }}"
-                      group: "motion_{{ camera_name_clean }}"
-                      channel: "Motion Alerts"
+                      group: "{{ notification_group }}"
+                      channel: "{{ 'Motion_Alerts_High' if high_priority else 'Motion_Alerts' }}"
+                      importance: "{{ 'high' if high_priority else 'default' }}"
                       priority: "{{ 'high' if high_priority else 'default' }}"
                       ttl: "{{ 0 if high_priority else 86400 }}"
                       push:
@@ -520,8 +533,9 @@ action:
                     message: "Motion detected."
                     data:
                       tag: "{{ notification_tag }}"
-                      group: "motion_{{ camera_name_clean }}"
-                      channel: "Motion Alerts"
+                      group: "{{ notification_group }}"
+                      channel: "{{ 'Motion_Alerts_High' if high_priority else 'Motion_Alerts' }}"
+                      importance: "{{ 'high' if high_priority else 'default' }}"
                       priority: "{{ 'high' if high_priority else 'default' }}"
                       ttl: "{{ 0 if high_priority else 86400 }}"
                       push:
