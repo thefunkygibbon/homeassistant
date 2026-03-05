@@ -1,34 +1,50 @@
 blueprint:
-  name: Gibbon's Advanced Motion Sensor
-  description: Turn on a light when motion is detected On due to a number of factors.  Time of day,  sun elevation, light binary sensor or a illuminance (lux) sensor (v1.1)
+  name: Gibbon's Advanced Motion Sensor (v2.0)
+  description: >
+    Turn on a light when motion is detected based on various factors (Time, Sun, Lux).
+    Upgraded to fix 'unsupported color_temp' errors and includes Transition fading and Bypass modes.
   domain: automation
   input:
     test0:
       name: "*** Trigger Motion Sensor ***"
-      default: The following section is simply the motion entity you want to trigger the lights turning on. 
+      default: "The following section is simply the motion entity you want to trigger the lights turning on."
       selector: 
         text:
-         multiline: true
+          multiline: true
   
     motion_entity:
       name: Motion Sensor
-      description: The entity which you want the motion to based on. 
+      description: The entity which you want the motion to be based on.
       selector:
         entity:
           domain: binary_sensor
+
     test1:
       name: "*** Condition variables ***"
-      default: The following section are methods of determining if the automation should proceed.  If either of them are true then the lights will turn on. 
+      default: "The following section are methods of determining if the automation should proceed."
       selector: 
         text:
-         multiline: true
+          multiline: true
+
+    bypass_entity:
+      name: Bypass Switch (optional)
+      description: If this entity is ON, the automation will be paused and will not trigger (Useful for a 'Guest Mode' or 'Force Off' helper).
+      default: 
+      selector:
+        entity:
+          domain:
+            - input_boolean
+            - switch
+            - binary_sensor
+
     ilum_entity:
       name: Light Binary Sensor (optional) 
-      description: The optional entity for a binary sensor (which should report ON for brighter than specified light level or OFF for darker than specified light level)
+      description: The optional entity for a binary sensor (which should report ON for brighter than specified light level or OFF for darker).
       default: 
       selector:
         entity: 
           domain: binary_sensor
+
     lux_entity:
       name: Light Iluminance Sensor (optional)
       description: The optional entity for any entity which reports a lux value.
@@ -36,19 +52,21 @@ blueprint:
       selector:
         entity: 
           domain: sensor
+
     lux_value:
       name: Desired Lux value (optional)
-      description: if you are using the illuminance entity above, automation will trigger if lux value is less than this value. 
+      description: If you are using the illuminance entity above, automation will trigger if lux value is less than this value.
       default: 
       selector:
         number:
-          min: 00
+          min: 0
           max: 100
           mode: slider
           step: 1  
+
     elevation_shift:
       name: Elevation Shift
-      description: Using an elevation offset (height of sun relative to the horizon) to shift the sunset trigger, either earlier or later. Positive values bring the automation start time forward, whilst negative values delay the start time.
+      description: Using an elevation offset (height of sun relative to the horizon) to shift the sunset trigger.
       default: 
       selector:
         number:
@@ -56,18 +74,21 @@ blueprint:
           max: 20
           mode: slider
           step: 1
+
     use_time:
       name: 'Use timeslot only'
-      description: 'Enable this to ONLY use the timeslot in the automation (this overrides all other conditions)'
+      description: 'Enable this to ONLY use the timeslot in the automation (this overrides the sun/lux conditions)'
       default: false
       selector:
         boolean:
+
     time_from:
       name: 'Time from'
       description: 'Automation only activates after this time'
       default: "00:00:00"
       selector:
         time:
+
     time_to:
       name: 'Time to'
       description: 'Automation only activates before this time'
@@ -77,21 +98,22 @@ blueprint:
 
     test2:
       name: "*** Action variables ***"
-      default: The following section are lights which you want turning on and to what brightness, temperature and how long you wish to wait until they turn off again when there is no motion detected.  
+      default: "The following section manages which lights turn on, how bright, their transition, and wait times."
       selector: 
         text:
-         multiline: true
+          multiline: true
 
     target_light:
       name: Lights
-      description: This is the light(s) that will be activated at sunset (use helper to change to a light if its a switch)
+      description: This is the light(s) that will be activated.
       selector:
         target:
           entity:
             domain: light
+
     target_brightness:
       name: Brightness
-      description: Brightness of the light(s) when they're activated
+      description: Brightness of the light(s) when they're activated.
       default: 50
       selector:
         number:
@@ -100,14 +122,32 @@ blueprint:
           mode: slider
           step: 5.0
           unit_of_measurement: '%'
+
+    enable_color_temp:
+      name: Enable Color Temperature
+      description: TURN ON ONLY if your target bulbs support changing color temperature. Leaving this off prevents Home Assistant errors.
+      default: false
+      selector:
+        boolean:
+
     target_color_temp:
       name: Temperature
-      description: Temperature of the light(s) when they're activated
+      description: Temperature of the light(s) when activated (Ignored if toggle above is OFF).
       default: 280
       selector:
         color_temp:
           min_mireds: 153
           max_mireds: 500
+
+    transition_time:
+      name: Transition Time
+      description: How long (in seconds) the lights should take to gracefully fade ON and OFF.
+      default: 2
+      selector:
+        number:
+          min: 0
+          max: 30
+          unit_of_measurement: seconds
 
     no_motion_wait:
       name: Wait time
@@ -119,12 +159,11 @@ blueprint:
           max: 3600
           unit_of_measurement: seconds
 
-# If motion is detected within the delay,
-# we restart the script.
 mode: restart
 max_exceeded: silent
 
 variables:
+  bypass_entity: !input bypass_entity
   motion_entity: !input motion_entity
   ilum_entity: !input ilum_entity
   lux_entity: !input lux_entity
@@ -135,18 +174,33 @@ variables:
   time_to: !input time_to
   target_light: !input target_light
   target_brightness: !input target_brightness
+  enable_color_temp: !input enable_color_temp
   target_color_temp: !input target_color_temp
+  transition_time: !input transition_time
   no_motion_wait: !input no_motion_wait
-  within_time: >
-    {{ not use_time or time_from | today_at < now() < time_to | today_at }}
+
+  # Fixed time span logic to properly handle overnights (e.g. 22:00 to 06:00)
   within_time_use: >
-    {{ time_from | today_at < now() < time_to | today_at }}
+    {% set t_from = time_from | today_at %}
+    {% set t_to = time_to | today_at %}
+    {% if t_from < t_to %}
+      {{ t_from <= now() <= t_to }}
+    {% else %}
+      {{ now() >= t_from or now() <= t_to }}
+    {% endif %}
+  
+  within_time: >
+    {{ not use_time or within_time_use }}
+
   sun_elevation_below_shift: >
-    {{ elevation_shift is not none and (state_attr('sun.sun', 'elevation') < elevation_shift) }}
+    {{ elevation_shift is not none and elevation_shift != '' and (state_attr('sun.sun', 'elevation') | float(0) < elevation_shift | float(0)) }}
+  
   lux_check: >
-    {{ lux_entity is not none and lux_value is not none and states(lux_entity) | float < lux_value }}
+    {{ lux_entity is not none and lux_value is not none and lux_value != '' and states(lux_entity) | float(1000) < lux_value | float(0) }}
+  
   ilum_check: >
     {{ ilum_entity is not none and is_state(ilum_entity, 'off') }}
+
 trigger:
   - platform: state
     entity_id: !input motion_entity
@@ -154,25 +208,49 @@ trigger:
     to: "on"
 
 condition:
+  # Check if the bypass switch is active. If so, halt the automation.
+  - condition: template
+    value_template: >
+      {{ bypass_entity == none or bypass_entity == '' or not is_state(bypass_entity, 'on') }}
+  
+  # Time, Sun, and Lux checks
   - condition: template
     value_template: >
       {% if use_time %}
         {{ within_time_use }}
       {% else %}
-        {{ within_time and ( ilum_check or lux_check or sun_elevation_below_shift) }}
+        {{ within_time and (ilum_check or lux_check or sun_elevation_below_shift) }}
       {% endif %}
-  
+ 
 action:
-  - service: light.turn_on
-    target: !input target_light
-    data_template:
-      brightness_pct: '{{ target_brightness | int }}'
-      color_temp: '{{ target_color_temp | int }}'
+  # Choose block dynamically decides whether to send color_temp based on the user toggle
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ enable_color_temp }}"
+        sequence:
+          - service: light.turn_on
+            target: !input target_light
+            data:
+              brightness_pct: '{{ target_brightness | int }}'
+              color_temp: '{{ target_color_temp | int }}'
+              transition: '{{ transition_time | int }}'
+    default:
+      - service: light.turn_on
+        target: !input target_light
+        data:
+          brightness_pct: '{{ target_brightness | int }}'
+          transition: '{{ transition_time | int }}'
+
   - wait_for_trigger:
       platform: state
       entity_id: !input motion_entity
       from: "on"
       to: "off"
+
   - delay: !input no_motion_wait
+
   - service: light.turn_off
     target: !input target_light
+    data:
+      transition: '{{ transition_time | int }}'
