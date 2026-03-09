@@ -1,0 +1,93 @@
+blueprint:
+  name: Sonoff Zigbee Button (2025.3 Compatible)
+  description: >
+    Control your home with the SONOFF Zigbee button (WB01/SNZB-01P).
+    This version is updated for Home Assistant 2025.3 and includes 
+    support for Press, Double Press, Hold, and Release.
+  domain: automation
+  input:
+    button_id:
+      name: Button
+      description: The Sonoff button device to use.
+      selector:
+        device:
+          filter:
+            - manufacturer: eWeLink
+              model: WB01
+            - manufacturer: eWeLink
+              model: SNZB-01P
+          multiple: false
+    mode:
+      name: Automation mode
+      description: How the automation handles rapid repeated presses.
+      default: restart
+      selector:
+        select:
+          options:
+            - single
+            - restart
+            - queued
+            - parallel
+    press_action:
+      name: Press Action
+      description: Action to perform on a single press.
+      default: []
+      selector:
+        action: {}
+    double_press_action:
+      name: Double Press Action
+      description: Action to perform on a double press.
+      default: []
+      selector:
+        action: {}
+    hold_action:
+      name: Hold Action
+      description: Action to perform when held.
+      default: []
+      selector:
+        action: {}
+    release_action:
+      name: Release Action (Optional)
+      description: Action to perform when the button is released after a hold.
+      default: []
+      selector:
+        action: {}
+
+mode: !input mode
+max_exceeded: silent
+
+trigger:
+  - platform: event
+    event_type: zha_event
+    event_data:
+      device_id: !input button_id
+
+action:
+  - variables:
+      command: "{{ trigger.event.data.command }}"
+      # Mapping Sonoff ZHA commands to friendly names
+      # toggle = press, on = double, off = hold
+  - choose:
+      # Single Press
+      - conditions:
+          - condition: template
+            value_template: "{{ command == 'toggle' }}"
+        sequence: !input press_action
+
+      # Double Press
+      - conditions:
+          - condition: template
+            value_template: "{{ command == 'on' }}"
+        sequence: !input double_press_action
+
+      # Hold
+      - conditions:
+          - condition: template
+            value_template: "{{ command == 'off' }}"
+        sequence: !input hold_action
+
+      # Release (Commonly used for dimming loops)
+      - conditions:
+          - condition: template
+            value_template: "{{ command == 'stop' or command == 'release' }}"
+        sequence: !input release_action
