@@ -1,71 +1,24 @@
 blueprint:
-  name: "Alexa Doorbell Announcer (V1.4)"
+  name: "Modern Door Announcer (Open & Close States)"
   description: >
-    Announce doorbell, door or any binary sensor events over Alexa. 
-    Supports Alexa Sound Library or custom Voice Messages.
-    Now supports multiple input sensors (e.g., Front and Side doors) and multiple Alexa devices.
-    
-    Browse the full sound library here: https://developer.amazon.com/en-US/docs/alexa/custom-skills/ask-soundlibrary-reference.html
+    Announce when doors are OPENED and/or CLOSED. 
+    You can independently toggle alerts for opening and shutting, and set different sounds or messages for each state.
   domain: automation
   input:
     trigger_sensors:
-      name: Doorbell or Door Sensors
-      description: Select one or more sensors. If ANY of these are triggered, Alexa will announce it.
+      name: Door Sensors
+      description: Select your door or window contact sensors.
       selector:
         entity:
           domain: binary_sensor
           multiple: true
     echo_devices:
       name: Alexa Devices
-      description: Select one or more Echo devices to play the announcement.
+      description: Select one or more Echo devices to play the announcements.
       selector:
         entity:
           domain: media_player
           multiple: true
-    announcement_type:
-      name: Announcement Type
-      description: Choose if Alexa should speak text or play a library sound.
-      default: "tts"
-      selector:
-        select:
-          options:
-            - label: "Voice Message (TTS)"
-              value: "tts"
-            - label: "Amazon Library Sound"
-              value: "sound"
-    tts_message:
-      name: Voice Message
-      description: What Alexa will say (if Voice Message is selected).
-      default: "There is someone at the door"
-      selector:
-        text:
-    sound_preset:
-      name: Popular Sound Presets
-      description: "Choose a common sound, or select 'Custom' to use the URI box below."
-      default: "soundbank://soundlibrary/home/amzn_sfx_doorbell_chime_01"
-      selector:
-        select:
-          options:
-            - label: "Standard Doorbell 1"
-              value: "soundbank://soundlibrary/home/amzn_sfx_doorbell_chime_01"
-            - label: "Classic Doorbell 2"
-              value: "soundbank://soundlibrary/home/amzn_sfx_doorbell_chime_02"
-            - label: "Electronic Chime"
-              value: "soundbank://soundlibrary/home/amzn_sfx_doorbell_chime_03"
-            - label: "Church Bell"
-              value: "soundbank://soundlibrary/home/amzn_sfx_church_bell_1x_01"
-            - label: "Sci-Fi Chime"
-              value: "soundbank://soundlibrary/scifi/amzn_sfx_scifi_doorbell_01"
-            - label: "--- USE CUSTOM URI BELOW ---"
-              value: "custom"
-    sound_uri:
-      name: Custom Amazon Sound URI
-      description: >
-        Only used if 'Custom' is selected above. 
-        Example: soundbank://soundlibrary/animals/amzn_sfx_bear_groan_roar_01
-      default: "soundbank://soundlibrary/animals/amzn_sfx_bear_groan_roar_01"
-      selector:
-        text:
     announcement_volume:
       name: Announcement Volume
       description: 0 to 1. Set to 0 to keep the speaker's current volume.
@@ -76,81 +29,192 @@ blueprint:
           max: 1
           step: 0.05
           mode: slider
-    repeat_delay:
-      name: Repeat Delay (Seconds)
-      description: Set to 0 to play only once.
-      default: 0
+
+    # ===============================
+    # OPEN ALERT SETTINGS (to: 'on')
+    # ===============================
+    enable_open_alert:
+      name: "[OPEN] Enable Alert"
+      description: "Trigger an announcement when the door OPENS."
+      default: true
       selector:
-        number:
-          min: 0
-          max: 30
-          unit_of_measurement: s
+        boolean: {}
+    open_type:
+      name: "[OPEN] Announcement Type"
+      default: "tts"
+      selector:
+        select:
+          options:
+            - label: "Voice Message (TTS)"
+              value: "tts"
+            - label: "Amazon Library Sound"
+              value: "sound"
+    open_tts_message:
+      name: "[OPEN] Voice Message"
+      default: "A door has been opened."
+      selector:
+        text:
+    open_sound_preset:
+      name: "[OPEN] Sound Preset"
+      default: "soundbank://soundlibrary/home/amzn_sfx_doorbell_chime_01"
+      selector:
+        select:
+          options:
+            - label: "Standard Doorbell 1"
+              value: "soundbank://soundlibrary/home/amzn_sfx_doorbell_chime_01"
+            - label: "Classic Doorbell 2"
+              value: "soundbank://soundlibrary/home/amzn_sfx_doorbell_chime_02"
+            - label: "Sci-Fi Chime"
+              value: "soundbank://soundlibrary/scifi/amzn_sfx_scifi_doorbell_01"
+            - label: "--- USE CUSTOM URI BELOW ---"
+              value: "custom"
+    open_sound_uri:
+      name: "[OPEN] Custom Amazon Sound URI"
+      default: "soundbank://soundlibrary/animals/amzn_sfx_bear_groan_roar_01"
+      selector:
+        text:
+
+    # ===============================
+    # CLOSE ALERT SETTINGS (to: 'off')
+    # ===============================
+    enable_close_alert:
+      name: "[CLOSE] Enable Alert"
+      description: "Trigger an announcement when the door is SHUT."
+      default: false
+      selector:
+        boolean: {}
+    close_type:
+      name: "[CLOSE] Announcement Type"
+      default: "tts"
+      selector:
+        select:
+          options:
+            - label: "Voice Message (TTS)"
+              value: "tts"
+            - label: "Amazon Library Sound"
+              value: "sound"
+    close_tts_message:
+      name: "[CLOSE] Voice Message"
+      default: "The door is now shut."
+      selector:
+        text:
+    close_sound_preset:
+      name: "[CLOSE] Sound Preset"
+      default: "soundbank://soundlibrary/home/amzn_sfx_doorbell_chime_02"
+      selector:
+        select:
+          options:
+            - label: "Standard Doorbell 1"
+              value: "soundbank://soundlibrary/home/amzn_sfx_doorbell_chime_01"
+            - label: "Classic Doorbell 2"
+              value: "soundbank://soundlibrary/home/amzn_sfx_doorbell_chime_02"
+            - label: "Sci-Fi Chime"
+              value: "soundbank://soundlibrary/scifi/amzn_sfx_scifi_doorbell_01"
+            - label: "--- USE CUSTOM URI BELOW ---"
+              value: "custom"
+    close_sound_uri:
+      name: "[CLOSE] Custom Amazon Sound URI"
+      default: "soundbank://soundlibrary/magic/amzn_sfx_magic_blast_1x_01"
+      selector:
+        text:
 
 variables:
   v_devices: !input echo_devices
-  v_type: !input announcement_type
-  v_message: !input tts_message
-  v_preset: !input sound_preset
-  v_uri: !input sound_uri
   v_volume: !input announcement_volume
-  v_repeat: !input repeat_delay
+  
+  v_enable_open: !input enable_open_alert
+  v_open_type: !input open_type
+  v_open_message: !input open_tts_message
+  v_open_preset: !input open_sound_preset
+  v_open_uri: !input open_sound_uri
+  
+  v_enable_close: !input enable_close_alert
+  v_close_type: !input close_type
+  v_close_message: !input close_tts_message
+  v_close_preset: !input close_sound_preset
+  v_close_uri: !input close_sound_uri
 
-mode: single
+mode: parallel
+max: 10
 
 trigger:
+  # Trigger 1: Door Opens
   - platform: state
     entity_id: !input trigger_sensors
-    from: "off"
     to: "on"
+    id: "door_opened"
+  # Trigger 2: Door Closes
+  - platform: state
+    entity_id: !input trigger_sensors
+    to: "off"
+    id: "door_closed"
 
 action:
-  # 1. Set Volume (if volume > 0)
-  - if:
-      - condition: template
-        value_template: "{{ v_volume | float > 0 }}"
-    then:
-      - service: media_player.volume_set
-        target:
-          entity_id: "{{ v_devices }}"
-        data:
-          volume_level: "{{ v_volume | float }}"
+  - choose:
+      # -----------------------------------
+      # LOGIC IF THE DOOR WAS OPENED
+      # -----------------------------------
+      - conditions:
+          - condition: trigger
+            id: "door_opened"
+          - condition: template
+            value_template: "{{ v_enable_open }}"
+        sequence:
+          - if:
+              - condition: template
+                value_template: "{{ v_volume | float > 0 }}"
+            then:
+              - service: media_player.volume_set
+                target:
+                  entity_id: "{{ v_devices }}"
+                data:
+                  volume_level: "{{ v_volume | float }}"
+          - service: notify.alexa_media
+            data:
+              target: "{{ v_devices }}"
+              data:
+                type: tts
+              message: >
+                {% if v_open_type == 'tts' %}
+                  {{ v_open_message }}
+                {% else %}
+                  {% if v_open_preset == 'custom' %}
+                    <audio src='{{ v_open_uri }}'/>
+                  {% else %}
+                    <audio src='{{ v_open_preset }}'/>
+                  {% endif %}
+                {% endif %}
 
-  # 2. Play Announcement (First time)
-  - service: notify.alexa_media
-    data:
-      target: "{{ v_devices }}"
-      data:
-        type: tts
-      message: >
-        {% if v_type == 'tts' %}
-          {{ v_message }}
-        {% else %}
-          {% if v_preset == 'custom' %}
-            <audio src='{{ v_uri }}'/>
-          {% else %}
-            <audio src='{{ v_preset }}'/>
-          {% endif %}
-        {% endif %}
-
-  # 3. Handle Repeat (if repeat_delay > 0)
-  - if:
-      - condition: template
-        value_template: "{{ v_repeat | int > 0 }}"
-    then:
-      - delay:
-          seconds: "{{ v_repeat | int }}"
-      - service: notify.alexa_media
-        data:
-          target: "{{ v_devices }}"
-          data:
-            type: tts
-          message: >
-            {% if v_type == 'tts' %}
-              {{ v_message }}
-            {% else %}
-              {% if v_preset == 'custom' %}
-                <audio src='{{ v_uri }}'/>
-              {% else %}
-                <audio src='{{ v_preset }}'/>
-              {% endif %}
-            {% endif %}
+      # -----------------------------------
+      # LOGIC IF THE DOOR WAS CLOSED
+      # -----------------------------------
+      - conditions:
+          - condition: trigger
+            id: "door_closed"
+          - condition: template
+            value_template: "{{ v_enable_close }}"
+        sequence:
+          - if:
+              - condition: template
+                value_template: "{{ v_volume | float > 0 }}"
+            then:
+              - service: media_player.volume_set
+                target:
+                  entity_id: "{{ v_devices }}"
+                data:
+                  volume_level: "{{ v_volume | float }}"
+          - service: notify.alexa_media
+            data:
+              target: "{{ v_devices }}"
+              data:
+                type: tts
+              message: >
+                {% if v_close_type == 'tts' %}
+                  {{ v_close_message }}
+                {% else %}
+                  {% if v_close_preset == 'custom' %}
+                    <audio src='{{ v_close_uri }}'/>
+                  {% else %}
+                    <audio src='{{ v_close_preset }}'/>
+                  {% endif %}
+                {% endif %}
