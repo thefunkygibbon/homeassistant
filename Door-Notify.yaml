@@ -1,5 +1,5 @@
 blueprint:
-  name: "Modern Door Announcer (Open & Close States)"
+  name: "Gibbon Alexa Door Announcer v1.5`"
   description: >
     Announce when doors are OPENED and/or CLOSED. 
     You can independently toggle alerts for opening and shutting, and set different sounds or messages for each state.
@@ -7,7 +7,7 @@ blueprint:
   input:
     trigger_sensors:
       name: Door Sensors
-      description: Select your door or window contact sensors.
+      description: Select your door/window contact sensors or Doorbell entities.
       selector:
         entity:
           domain: binary_sensor
@@ -79,7 +79,7 @@ blueprint:
     # ===============================
     enable_close_alert:
       name: "[CLOSE] Enable Alert"
-      description: "Trigger an announcement when the door is SHUT."
+      description: "Trigger an announcement when the door is SHUT. NOT Recommended for Doorbells"
       default: false
       selector:
         boolean: {}
