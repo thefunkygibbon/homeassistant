@@ -1,5 +1,5 @@
 blueprint:
-  name: "Gibbon Alexa Door Announcer v1.5`"
+  name: "Gibbon's Alexa Door Announcer v1.5`"
   description: >
     Announce when doors are OPENED and/or CLOSED. 
     You can independently toggle alerts for opening and shutting, and set different sounds or messages for each state.
