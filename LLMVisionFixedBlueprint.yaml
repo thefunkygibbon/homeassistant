@@ -1,9 +1,9 @@
 blueprint:
-  name: AI Event Summary (v1.11.0 - True Priority & Grouping)
-  author: valentinfrlch (Refined by thefunkygibbon)
+  name: Gibbon's AI Event Summary (v1.11.0)
+  author: thefunkygibbon
   homeassistant:
     min_version: 2024.10.0
-  description: 'AI-powered summaries. Enhanced with Cooldown, Memory, Auto-Cleanup, Schedules, Presence Detection, Custom Titles, and True High-Priority grouping for Android/iOS.'
+  description: '"LLM Vision" AI-powered summaries. Enhanced with Cooldown, Memory, Auto-Cleanup, Schedules, Presence Detection, Custom Titles, and True High-Priority grouping for Android/iOS.'
   domain: automation
   
   input:
