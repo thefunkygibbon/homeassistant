@@ -1,5 +1,5 @@
 blueprint:
-  name: Sonoff Zigbee Button (2025.3 Compatible)
+  name: Gibbon's Sonoff Zigbee Button (2025.3 Compatible)
   description: >
     Control your home with the SONOFF Zigbee button (WB01/SNZB-01P).
     This version is updated for Home Assistant 2025.3 and includes 
