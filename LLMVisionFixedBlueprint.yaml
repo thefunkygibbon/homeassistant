@@ -1,5 +1,5 @@
 blueprint:
-  name: Gibbon's AI Event Summary (v1.11.0)
+  name: Gibbon's AI Event Summary (v1.12)
   author: thefunkygibbon
   homeassistant:
     min_version: 2024.10.0
@@ -332,9 +332,14 @@ variables:
   device_entities: >-
     {% set ns = namespace(devices=[]) %}
     {% for dev in notify_devices %}
-      {% set name = device_attr(dev, 'name') %}
-      {% set slug = name | slugify %}
-      {% set ns.devices = ns.devices + ['mobile_app_' + slug] %}
+      {% if dev %}
+        {% set name = device_attr(dev, 'name_by_user') %}
+        {% set name = name if name else device_attr(dev, 'name') %}
+        {% if name %}
+          {% set slug = name | slugify %}
+          {% set ns.devices = ns.devices + ['mobile_app_' + slug] %}
+        {% endif %}
+      {% endif %}
     {% endfor %}
     {{ ns.devices }}
 
