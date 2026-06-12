@@ -1,5 +1,5 @@
 blueprint:
-  name: Gibbon's AI Event Summary (v1.12)
+  name: Gibbon's AI Event Summary (v1.13)
   author: thefunkygibbon
   homeassistant:
     min_version: 2024.10.0
