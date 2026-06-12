@@ -453,8 +453,10 @@ action:
           store_in_timeline: !input store_in_timeline
           generate_title: !input store_in_timeline
           expose_images: true
+          target_width: 512
         response_variable: response
 
+  
       - repeat:
           for_each: "{{ device_entities }}"
           sequence:
